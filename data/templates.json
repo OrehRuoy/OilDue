@@ -1,0 +1,116 @@
+[
+	{
+		"id": "oil_change",
+		"name": "Oil change",
+		"interval_miles": 5000,
+		"interval_months": 6
+	},
+	{
+		"id": "tire_rotation",
+		"name": "Tire rotation",
+		"interval_miles": 7500,
+		"interval_months": 6
+	},
+	{
+		"id": "brake_inspect",
+		"name": "Brake inspect",
+		"interval_miles": null,
+		"interval_months": 12
+	},
+	{
+		"id": "air_filter",
+		"name": "Engine air filter",
+		"interval_miles": 15000,
+		"interval_months": 12
+	},
+	{
+		"id": "cabin_filter",
+		"name": "Cabin air filter",
+		"interval_miles": 15000,
+		"interval_months": 12
+	},
+	{
+		"id": "coolant",
+		"name": "Coolant",
+		"interval_miles": 30000,
+		"interval_months": 24
+	},
+	{
+		"id": "spark_plugs",
+		"name": "Spark plugs",
+		"interval_miles": 60000,
+		"interval_months": 60
+	},
+	{
+		"id": "battery",
+		"name": "Battery",
+		"interval_miles": null,
+		"interval_months": 36
+	},
+	{
+		"id": "wipers",
+		"name": "Wipers",
+		"interval_miles": null,
+		"interval_months": 12
+	},
+	{
+		"id": "inspection",
+		"name": "Inspection",
+		"interval_miles": null,
+		"interval_months": 12
+	},
+	{
+		"id": "registration",
+		"name": "Registration",
+		"interval_miles": null,
+		"interval_months": 12
+	},
+	{
+		"id": "brake_fluid",
+		"name": "Brake fluid",
+		"interval_miles": 30000,
+		"interval_months": 24
+	},
+	{
+		"id": "trans_fluid",
+		"name": "Transmission fluid",
+		"interval_miles": 30000,
+		"interval_months": 24
+	},
+	{
+		"id": "fuel_filter",
+		"name": "Fuel filter",
+		"interval_miles": 30000,
+		"interval_months": 24
+	},
+	{
+		"id": "serpentine",
+		"name": "Serpentine belt",
+		"interval_miles": 60000,
+		"interval_months": 60
+	},
+	{
+		"id": "timing_belt",
+		"name": "Timing belt",
+		"interval_miles": 60000,
+		"interval_months": 84
+	},
+	{
+		"id": "alignment",
+		"name": "Alignment",
+		"interval_miles": 0,
+		"interval_months": 12
+	},
+	{
+		"id": "tire_replace",
+		"name": "Tires",
+		"interval_miles": 40000,
+		"interval_months": 48
+	},
+	{
+		"id": "custom",
+		"name": "Custom",
+		"interval_miles": null,
+		"interval_months": null
+	}
+]

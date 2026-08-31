@@ -1,0 +1,18 @@
+# Godot 4
+.godot/
+
+# Export output (do not ignore export_presets.cfg when it appears later)
+exports/
+*.ipa
+*.apk
+*.aab
+*.pck
+*.exe
+
+# Godot Mono leftovers (this project is GDScript only)
+.mono/
+data_*/
+mono_crash.*.json
+
+# Imported translations
+*.translation

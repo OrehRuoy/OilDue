@@ -1,0 +1,271 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/garage.gd" id="1_garage"]
+[ext_resource type="Texture2D" path="res://assets/icons/plus.png" id="2_plus"]
+[ext_resource type="Texture2D" path="res://assets/icons/gear.png" id="3_gear"]
+[ext_resource type="Texture2D" path="res://assets/bg/garage_night.jpg" id="4_bay"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_photo"]
+bg_color = Color(0.164706, 0.14902, 0.133333, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hole"]
+bg_color = Color(0.164706, 0.14902, 0.133333, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup"]
+bg_color = Color(0.164706, 0.14902, 0.133333, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 20
+content_margin_top = 20
+content_margin_right = 20
+content_margin_bottom = 20
+
+[node name="Garage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_garage")
+
+[node name="NightBay" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_bay")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.101961, 0.090196, 0.078431, 0.5)
+
+[node name="SafeArea" type="MarginContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Column" type="VBoxContainer" parent="SafeArea"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CarStrip" type="ScrollContainer" parent="SafeArea/Column"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 86)
+layout_mode = 2
+size_flags_horizontal = 3
+vertical_scroll_mode = 0
+horizontal_scroll_mode = 3
+
+[node name="CarTiles" type="HBoxContainer" parent="SafeArea/Column/CarStrip"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="SafeArea/Column"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PhotoSlot" type="Panel" parent="SafeArea/Column/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+size_flags_vertical = 4
+clip_contents = true
+clip_children = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_photo")
+
+[node name="PhotoPad" type="MarginContainer" parent="SafeArea/Column/Header/PhotoSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="PhotoHole" type="Panel" parent="SafeArea/Column/Header/PhotoSlot/PhotoPad"]
+layout_mode = 2
+clip_contents = true
+clip_children = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hole")
+
+[node name="PhotoRect" type="TextureRect" parent="SafeArea/Column/Header/PhotoSlot/PhotoPad/PhotoHole"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="HeaderText" type="VBoxContainer" parent="SafeArea/Column/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="CarName" type="Button" parent="SafeArea/Column/Header/HeaderText"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"TitleButton"
+theme_override_font_sizes/font_size = 22
+alignment = 0
+text = "2018 Civic"
+
+[node name="CarSwitch" type="OptionButton" parent="SafeArea/Column/Header/HeaderText"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 17
+fit_to_longest_item = true
+
+[node name="Odometer" type="Label" parent="SafeArea/Column/Header/HeaderText"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+theme_override_font_sizes/font_size = 15
+text = "87,420 mi"
+
+[node name="UpdateMiles" type="Button" parent="SafeArea/Column/Header/HeaderText"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"CapsuleButton"
+text = "Update miles"
+
+[node name="Add" type="Button" parent="SafeArea/Column/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"IconButton"
+tooltip_text = "Add"
+icon = ExtResource("2_plus")
+expand_icon = true
+
+[node name="Gear" type="Button" parent="SafeArea/Column/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"IconButton"
+tooltip_text = "Gear"
+icon = ExtResource("3_gear")
+expand_icon = true
+
+[node name="Summary" type="Label" parent="SafeArea/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "All caught up"
+
+[node name="ServiceScroll" type="ScrollContainer" parent="SafeArea/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ServiceRows" type="VBoxContainer" parent="SafeArea/Column/ServiceScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="MilesPopup" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.101961, 0.090196, 0.078431, 0.55)
+
+[node name="Center" type="CenterContainer" parent="MilesPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="MilesPopup/Center"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_popup")
+
+[node name="PopupColumn" type="VBoxContainer" parent="MilesPopup/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PopupTitle" type="Label" parent="MilesPopup/Center/Panel/PopupColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Update miles"
+horizontal_alignment = 1
+
+[node name="MilesEdit" type="LineEdit" parent="MilesPopup/Center/Panel/PopupColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+placeholder_text = "Miles"
+
+[node name="PopupButtons" type="HBoxContainer" parent="MilesPopup/Center/Panel/PopupColumn"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MilesCancel" type="Button" parent="MilesPopup/Center/Panel/PopupColumn/PopupButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"
+
+[node name="MilesSet" type="Button" parent="MilesPopup/Center/Panel/PopupColumn/PopupButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Set"

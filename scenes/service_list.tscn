@@ -1,0 +1,150 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/service_list.gd" id="1_list"]
+[ext_resource type="Script" path="res://scripts/back_to_garage.gd" id="2_back"]
+[ext_resource type="Texture2D" path="res://assets/icons/back.png" id="3_back"]
+
+[node name="ServiceList" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_list")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.101961, 0.090196, 0.078431, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="PageScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Column" type="VBoxContainer" parent="Margin/PageScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Back" type="Button" parent="Margin/PageScroll/Column"]
+custom_minimum_size = Vector2(88, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "Back"
+icon = ExtResource("3_back")
+expand_icon = true
+script = ExtResource("2_back")
+
+[node name="TitleRow" type="HBoxContainer" parent="Margin/PageScroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleIcon" type="TextureRect" parent="Margin/PageScroll/Column/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Margin/PageScroll/Column/TitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "History"
+
+[node name="HistoryGroup" type="PanelContainer" parent="Margin/PageScroll/Column"]
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="HistoryRows" type="VBoxContainer" parent="Margin/PageScroll/Column/HistoryGroup"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="IntervalGroup" type="PanelContainer" parent="Margin/PageScroll/Column"]
+layout_mode = 2
+
+[node name="IntervalRow" type="HBoxContainer" parent="Margin/PageScroll/Column/IntervalGroup"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MilesCol" type="VBoxContainer" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="MilesCaption" type="Label" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MilesCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+theme_override_font_sizes/font_size = 13
+text = "Interval miles"
+
+[node name="IntervalMilesEdit" type="LineEdit" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MilesCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="MonthsCol" type="VBoxContainer" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="MonthsCaption" type="Label" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MonthsCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+theme_override_font_sizes/font_size = 13
+text = "Interval months"
+
+[node name="IntervalMonthsEdit" type="LineEdit" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MonthsCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="ErrorLabel" type="Label" parent="Margin/PageScroll/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
+autowrap_mode = 3
+
+[node name="LogButton" type="Button" parent="Margin/PageScroll/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"AccentButton"
+text = "Log this service"
+
+[node name="SaveIntervalsButton" type="Button" parent="Margin/PageScroll/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"CapsuleButton"
+text = "Save intervals"
+
+[node name="DeleteServiceButton" type="Button" parent="Margin/PageScroll/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"DangerButton"
+text = "Delete service"

@@ -1,0 +1,123 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicle_add.gd" id="1_add"]
+[ext_resource type="Texture2D" path="res://assets/icons/back.png" id="2_back"]
+
+[node name="VehicleAdd" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_add")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.101961, 0.090196, 0.078431, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Column" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Back" type="Button" parent="Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 44)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "Back"
+icon = ExtResource("2_back")
+expand_icon = true
+
+[node name="Title" type="Label" parent="Margin/Column"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Add a car"
+
+[node name="FormGroup" type="PanelContainer" parent="Margin/Column"]
+layout_mode = 2
+
+[node name="Form" type="VBoxContainer" parent="Margin/Column/FormGroup"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="YearCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+text = "Year"
+
+[node name="YearEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="MakeCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+text = "Make"
+
+[node name="MakeEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="ModelCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+text = "Model"
+
+[node name="ModelEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="NameCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+text = "Name"
+
+[node name="NameEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="OdometerCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+text = "Odometer"
+
+[node name="OdometerEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="ErrorLabel" type="Label" parent="Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
+autowrap_mode = 3
+
+[node name="AddButton" type="Button" parent="Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "Add car"

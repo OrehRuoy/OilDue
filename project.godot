@@ -1,0 +1,41 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Oil Due"
+run/main_scene="res://scenes/garage.tscn"
+config/features=PackedStringArray("4.6", "Mobile")
+config/icon="res://assets/icon_1024.png"
+
+[autoload]
+
+GarageStore="*res://scripts/garage_store.gd"
+PhotoService="*res://scripts/photo_service.gd"
+NotifyService="*res://scripts/notify_service.gd"
+Purchase="*res://scripts/purchase.gd"
+AppSettings="*res://scripts/app_settings.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=6
+
+[gui]
+
+theme/custom="res://assets/theme.tres"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+environment/defaults/default_clear_color=Color(0.101961, 0.090196, 0.078431, 1)
