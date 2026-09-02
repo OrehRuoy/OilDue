@@ -5,6 +5,7 @@
 
 #if VERSION_MAJOR == 4
 #if VERSION_MINOR >= 6
+#import "drivers/apple_embedded/app_delegate_service.h"
 #import "drivers/apple_embedded/godot_app_delegate.h"
 #import "drivers/apple_embedded/godot_view_controller.h"
 #elif VERSION_MINOR >= 5
