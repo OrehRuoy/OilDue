@@ -53,11 +53,149 @@ jobs:
   build-ios:
     needs: preflight
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_macos_export }}
-    runs-on: macos-latest
-    timeout-minutes: 5
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      GODOT_VERSION: "4.6.3"
     steps:
-      - name: Profile required
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode
         run: |
-          echo "export_project_only + xcodebuild wait until a provisioning profile exists."
-          echo "UUID is empty in export_presets.cfg. Do not archive this pass."
-          exit 0
+          LATEST=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
+
+      - name: Setup Godot
+        run: |
+          curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip" -o "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT_BIN=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+          curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o "$RUNNER_TEMP/templates.tpz"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP"
+          TDIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TDIR"
+          cp "$RUNNER_TEMP/templates/ios.zip" "$TDIR/"
+
+      - name: Build native iOS plugins
+        run: |
+          chmod +x native/build_plugins.sh
+          native/build_plugins.sh
+          test -d ios/plugins/storekit/StoreKit.release.xcframework
+          test -d ios/plugins/photopicker/PhotoPicker.release.xcframework
+          test -d ios/plugins/datepicker/DatePicker.release.xcframework
+
+      - name: Install Notification Scheduler iOS v5.2
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/ns-ios.zip" \
+            "https://github.com/godot-mobile-plugins/godot-notification-scheduler/releases/download/v5.2/NotificationSchedulerPlugin-iOS-v5.2.zip"
+          unzip -q "$RUNNER_TEMP/ns-ios.zip" -d "$RUNNER_TEMP/ns-ios"
+          DEST="ios/plugins/NotificationSchedulerPlugin"
+          mkdir -p "$DEST"
+          find "$RUNNER_TEMP/ns-ios" -type d -name '*.xcframework' | while read -r fw; do
+            cp -R "$fw" "$DEST/"
+          done
+          find "$RUNNER_TEMP/ns-ios" -name '*.gdip' -exec cp {} "$DEST/" \;
+          test -f "$DEST/NotificationSchedulerPlugin.gdip"
+          test -d "$DEST/NotificationSchedulerPlugin.release.xcframework" \
+            || test -d "$DEST/NotificationSchedulerPlugin.xcframework"
+
+      - name: Import signing certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+          KC_PASS=$(uuidgen)
+          security create-keychain -p "$KC_PASS" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KC_PASS" build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASS" build.keychain
+          rm certificate.p12
+
+      - name: Install provisioning profile
+        env:
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          UUID=$(grep 'application/provisioning_profile_uuid_release=' export_presets.cfg | sed -n 's/.*application\/provisioning_profile_uuid_release="\([^"]*\)".*/\1/p' | tail -1)
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/${UUID}.mobileprovision"
+
+      - name: Set build number
+        run: sed -i '' "s|application/version=\"[^\"]*\"|application/version=\"${GITHUB_RUN_NUMBER}\"|" export_presets.cfg
+
+      - name: Export iOS Xcode project
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          grep 'application/export_project_only=' export_presets.cfg
+          "$GODOT_BIN" --headless --path . --import || true
+          "$GODOT_BIN" --headless --path . --export-release "iOS (TestFlight IPA)" "build/OilDue.ipa"
+          XCODEPROJ=$(find build -name '*.xcodeproj' | head -1)
+          if [[ -z "$XCODEPROJ" ]]; then
+            echo "ERROR: no .xcodeproj under build/"
+            find build -type d | head -50
+            exit 1
+          fi
+          test -f "$XCODEPROJ/project.pbxproj"
+          echo "Xcode project: $XCODEPROJ"
+          ls -la build/
+
+      - name: Archive and export IPA
+        run: |
+          set -euo pipefail
+          UUID=$(grep 'application/provisioning_profile_uuid_release=' export_presets.cfg | sed -n 's/.*application\/provisioning_profile_uuid_release="\([^"]*\)".*/\1/p' | tail -1)
+          PROFILE="$HOME/Library/MobileDevice/Provisioning Profiles/${UUID}.mobileprovision"
+          PROFILE_NAME=$(security cms -D -i "$PROFILE" 2>/dev/null | plutil -extract Name raw -)
+          echo "Provisioning profile name: $PROFILE_NAME"
+          XCODEPROJ=$(find build -name '*.xcodeproj' | head -1)
+          SCHEME=$(basename "$XCODEPROJ" .xcodeproj)
+          ARCHIVE="build/${SCHEME}.xcarchive"
+          printf '%s\n' '{}' | plutil -convert xml1 -o build/ExportOptions.plist -
+          /usr/libexec/PlistBuddy -c "Add :method string app-store" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :teamID string 9WRNQYQZTB" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.oildue.app string ${PROFILE_NAME}" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool true" build/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :compileBitcode bool false" build/ExportOptions.plist
+          plutil -lint build/ExportOptions.plist
+          python3 tools/ios/patch_xcode_signing.py build "$PROFILE_NAME"
+          xcodebuild \
+            -project "$XCODEPROJ" \
+            -scheme "$SCHEME" \
+            -sdk iphoneos \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM=9WRNQYQZTB \
+            STRIP_INSTALLED_PRODUCT=NO \
+            COPY_PHASE_STRIP=NO \
+            STRIP_STYLE=non-global \
+            archive
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE" \
+            -exportPath build \
+            -exportOptionsPlist build/ExportOptions.plist
+          ls -la build/*.ipa
+          test -n "$(ls build/*.ipa 2>/dev/null)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OilDue-ipa
+          path: build/*.ipa
+          retention-days: 7
+
+      - name: Upload to TestFlight
+        env:
+          APPLE_ID_USERNAME: ${{ secrets.APPLE_ID_USERNAME }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        run: |
+          set -euo pipefail
+          IPA=$(ls build/*.ipa | head -1)
+          xcrun altool --upload-app -t ios -f "$IPA" \
+            -u "$APPLE_ID_USERNAME" -p "$APPLE_ID_PASSWORD" --verbose
