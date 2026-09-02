@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/service_add.gd" id="1_add"]
 [ext_resource type="Script" path="res://scripts/back_to_garage.gd" id="2_back"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="3_back"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="4_safe"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="5_page"]
 
 [node name="ServiceAdd" type="Control"]
 layout_mode = 3
@@ -34,89 +36,149 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("4_safe")
 
-[node name="Column" type="VBoxContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("5_page")
+
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Back" type="Button" parent="Margin/Column"]
+[node name="Back" type="Button" parent="Margin/PageHost/Column"]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("3_back")
 expand_icon = true
 script = ExtResource("2_back")
 
-[node name="Title" type="Label" parent="Margin/Column"]
+[node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ScreenTitle"
 text = "Add service"
 
-[node name="FormGroup" type="PanelContainer" parent="Margin/Column"]
+[node name="TypeScroll" type="ScrollContainer" parent="Margin/PageHost/Column"]
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="Form" type="VBoxContainer" parent="Margin/Column/FormGroup"]
+[node name="FormGroup" type="PanelContainer" parent="Margin/PageHost/Column/TypeScroll"]
 layout_mode = 2
-theme_override_constants/separation = 8
+size_flags_horizontal = 3
+theme_type_variation = &"GroupCard"
 
-[node name="TypeCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="Form" type="VBoxContainer" parent="Margin/PageHost/Column/TypeScroll/FormGroup"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-text = "Service"
+theme_override_constants/separation = 0
 
-[node name="TypeOption" type="OptionButton" parent="Margin/Column/FormGroup/Form"]
+[node name="TypeRows" type="VBoxContainer" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
 
-[node name="CustomBlock" type="VBoxContainer" parent="Margin/Column/FormGroup/Form"]
+[node name="CustomBlock" type="VBoxContainer" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 0
 
-[node name="NameCaption" type="Label" parent="Margin/Column/FormGroup/Form/CustomBlock"]
+[node name="CustomHair" type="ColorRect" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="NameRow" type="HBoxContainer" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NameCaption" type="Label" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock/NameRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_font_sizes/font_size = 13
 text = "Name"
+vertical_alignment = 1
 
-[node name="NameEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form/CustomBlock"]
+[node name="NameEdit" type="LineEdit" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock/NameRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
 
-[node name="MilesCaption" type="Label" parent="Margin/Column/FormGroup/Form/CustomBlock"]
+[node name="HairName" type="ColorRect" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="MilesRow" type="HBoxContainer" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MilesCaption" type="Label" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock/MilesRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_font_sizes/font_size = 13
 text = "Interval miles"
+vertical_alignment = 1
 
-[node name="MilesEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form/CustomBlock"]
+[node name="MilesEdit" type="LineEdit" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock/MilesRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
 placeholder_text = "Blank = 0"
 
-[node name="MonthsCaption" type="Label" parent="Margin/Column/FormGroup/Form/CustomBlock"]
+[node name="HairMiles" type="ColorRect" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="MonthsRow" type="HBoxContainer" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MonthsCaption" type="Label" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock/MonthsRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_font_sizes/font_size = 13
 text = "Interval months"
+vertical_alignment = 1
 
-[node name="MonthsEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form/CustomBlock"]
+[node name="MonthsEdit" type="LineEdit" parent="Margin/PageHost/Column/TypeScroll/FormGroup/Form/CustomBlock/MonthsRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
 placeholder_text = "Blank = 0"
 
-[node name="ErrorLabel" type="Label" parent="Margin/Column"]
+[node name="ErrorLabel" type="Label" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
 autowrap_mode = 3
 
-[node name="AddButton" type="Button" parent="Margin/Column"]
+[node name="AddButton" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
+theme_type_variation = &"CreamButton"
+disabled = true
 text = "Add"

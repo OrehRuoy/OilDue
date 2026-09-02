@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/help.gd" id="1_help"]
 [ext_resource type="Script" path="res://scripts/back_to_settings.gd" id="2_back"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="3_back"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="4_safe"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="5_page"]
 
 [node name="Help" type="Control"]
 layout_mode = 3
@@ -34,65 +36,73 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("4_safe")
 
-[node name="Column" type="VBoxContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 20
+size_flags_vertical = 3
+script = ExtResource("5_page")
 
-[node name="Back" type="Button" parent="Margin/Column"]
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Back" type="Button" parent="Margin/PageHost/Column"]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("3_back")
 expand_icon = true
 script = ExtResource("2_back")
 
-[node name="Title" type="Label" parent="Margin/Column"]
+[node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ScreenTitle"
 text = "Help"
 
-[node name="HelpScroll" type="ScrollContainer" parent="Margin/Column"]
+[node name="HelpScroll" type="ScrollContainer" parent="Margin/PageHost/Column"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="GroupHelp" type="PanelContainer" parent="Margin/Column/HelpScroll"]
+[node name="GroupHelp" type="PanelContainer" parent="Margin/PageHost/Column/HelpScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HelpText" type="VBoxContainer" parent="Margin/Column/HelpScroll/GroupHelp"]
+[node name="HelpText" type="VBoxContainer" parent="Margin/PageHost/Column/HelpScroll/GroupHelp"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="Line1" type="Label" parent="Margin/Column/HelpScroll/GroupHelp/HelpText"]
+[node name="Line1" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
 text = "This is a notebook for oil, tires, brakes. Not CARFAX."
 
-[node name="Line2" type="Label" parent="Margin/Column/HelpScroll/GroupHelp/HelpText"]
+[node name="Line2" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
-text = "Date reminders need notification permission. Mileage reminders need you to tap Update miles."
+text = "Date reminders need the OS permission; mileage overdue only shows in the app."
 
-[node name="Line3" type="Label" parent="Margin/Column/HelpScroll/GroupHelp/HelpText"]
+[node name="Line3" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Import: in VMT, export CSV, then Files → On My iPhone → Oil Due."
 
-[node name="Line4" type="Label" parent="Margin/Column/HelpScroll/GroupHelp/HelpText"]
+[node name="Line4" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Backup zip is how dates survive a new phone."
 
-[node name="Line5" type="Label" parent="Margin/Column/HelpScroll/GroupHelp/HelpText"]
+[node name="Line5" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Intervals are typical, not your dealer's schedule. Check the glovebox book."
 
-[node name="Line6" type="Label" parent="Margin/Column/HelpScroll/GroupHelp/HelpText"]
+[node name="Line6" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Everything stays on this iPhone. No account."

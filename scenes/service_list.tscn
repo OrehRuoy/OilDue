@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/service_list.gd" id="1_list"]
 [ext_resource type="Script" path="res://scripts/back_to_garage.gd" id="2_back"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="3_back"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="4_safe"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="5_page"]
 
 [node name="ServiceList" type="Control"]
 layout_mode = 3
@@ -34,31 +36,44 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("4_safe")
 
-[node name="PageScroll" type="ScrollContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("5_page")
+
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="PageScroll" type="ScrollContainer" parent="Margin/PageHost/Column"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="Column" type="VBoxContainer" parent="Margin/PageScroll"]
+[node name="Inner" type="VBoxContainer" parent="Margin/PageHost/Column/PageScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="Back" type="Button" parent="Margin/PageScroll/Column"]
+[node name="Back" type="Button" parent="Margin/PageHost/Column/PageScroll/Inner"]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("3_back")
 expand_icon = true
 script = ExtResource("2_back")
 
-[node name="TitleRow" type="HBoxContainer" parent="Margin/PageScroll/Column"]
+[node name="TitleRow" type="HBoxContainer" parent="Margin/PageHost/Column/PageScroll/Inner"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="TitleIcon" type="TextureRect" parent="Margin/PageScroll/Column/TitleRow"]
+[node name="TitleIcon" type="TextureRect" parent="Margin/PageHost/Column/PageScroll/Inner/TitleRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
@@ -66,85 +81,83 @@ size_flags_vertical = 4
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Title" type="Label" parent="Margin/PageScroll/Column/TitleRow"]
+[node name="Title" type="Label" parent="Margin/PageHost/Column/PageScroll/Inner/TitleRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ScreenTitle"
 text = "History"
 
-[node name="HistoryGroup" type="PanelContainer" parent="Margin/PageScroll/Column"]
+[node name="HistoryGroup" type="PanelContainer" parent="Margin/PageHost/Column/PageScroll/Inner"]
 layout_mode = 2
 theme_type_variation = &"GroupCard"
 
-[node name="HistoryRows" type="VBoxContainer" parent="Margin/PageScroll/Column/HistoryGroup"]
+[node name="HistoryRows" type="VBoxContainer" parent="Margin/PageHost/Column/PageScroll/Inner/HistoryGroup"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
-[node name="IntervalGroup" type="PanelContainer" parent="Margin/PageScroll/Column"]
+[node name="IntervalGroup" type="PanelContainer" parent="Margin/PageHost/Column/PageScroll/Inner"]
 layout_mode = 2
 
-[node name="IntervalRow" type="HBoxContainer" parent="Margin/PageScroll/Column/IntervalGroup"]
+[node name="IntervalRow" type="HBoxContainer" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MilesCol" type="VBoxContainer" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow"]
+[node name="MilesCol" type="VBoxContainer" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup/IntervalRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="MilesCaption" type="Label" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MilesCol"]
+[node name="MilesCaption" type="Label" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup/IntervalRow/MilesCol"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"Caption"
 text = "Interval miles"
 
-[node name="IntervalMilesEdit" type="LineEdit" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MilesCol"]
+[node name="IntervalMilesEdit" type="LineEdit" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup/IntervalRow/MilesCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="MonthsCol" type="VBoxContainer" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow"]
+[node name="MonthsCol" type="VBoxContainer" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup/IntervalRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="MonthsCaption" type="Label" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MonthsCol"]
+[node name="MonthsCaption" type="Label" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup/IntervalRow/MonthsCol"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"Caption"
 text = "Interval months"
 
-[node name="IntervalMonthsEdit" type="LineEdit" parent="Margin/PageScroll/Column/IntervalGroup/IntervalRow/MonthsCol"]
+[node name="IntervalMonthsEdit" type="LineEdit" parent="Margin/PageHost/Column/PageScroll/Inner/IntervalGroup/IntervalRow/MonthsCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="ErrorLabel" type="Label" parent="Margin/PageScroll/Column"]
+[node name="ErrorLabel" type="Label" parent="Margin/PageHost/Column/PageScroll/Inner"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
 autowrap_mode = 3
 
-[node name="LogButton" type="Button" parent="Margin/PageScroll/Column"]
+[node name="SaveIntervalsButton" type="Button" parent="Margin/PageHost/Column/PageScroll/Inner"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"AccentButton"
-text = "Log this service"
-
-[node name="SaveIntervalsButton" type="Button" parent="Margin/PageScroll/Column"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-theme_type_variation = &"CapsuleButton"
+theme_type_variation = &"SecondaryButton"
 text = "Save intervals"
 
-[node name="DeleteServiceButton" type="Button" parent="Margin/PageScroll/Column"]
+[node name="DeleteServiceButton" type="Button" parent="Margin/PageHost/Column/PageScroll/Inner"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_type_variation = &"DangerButton"
 text = "Delete service"
+
+[node name="LogButton" type="Button" parent="Margin/PageHost/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"CreamButton"
+text = "Log this service"

@@ -1,6 +1,9 @@
 extends Control
 
 const ServiceIcons = preload("res://scripts/service_icons.gd")
+const PanScroll = preload("res://scripts/pan_scroll.gd")
+const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
+const DueMath = preload("res://scripts/due_math.gd")
 
 @onready var _year_edit: LineEdit = %YearEdit
 @onready var _make_edit: LineEdit = %MakeEdit
@@ -10,10 +13,13 @@ const ServiceIcons = preload("res://scripts/service_icons.gd")
 @onready var _plate_edit: LineEdit = %PlateEdit
 @onready var _tire_edit: LineEdit = %TireEdit
 @onready var _filter_edit: LineEdit = %FilterEdit
+@onready var _odometer_edit: LineEdit = %OdometerEdit
 @onready var _error: Label = %ErrorLabel
-@onready var _photo_rect: TextureRect = %PhotoRect
-@onready var _nick: Label = %NickLabel
+@onready var _photo_hole: Panel = %PhotoHole
 @onready var _photo_sheet: ColorRect = %PhotoSheet
+@onready var _photo_slot: Panel = %PhotoSlot
+@onready var _placeholder: Control = %PlaceholderRow
+@onready var _place_hole: Panel = %PlaceHole
 
 
 func _ready() -> void:
@@ -28,13 +34,18 @@ func _ready() -> void:
 	_plate_edit.text = str(vehicle.get("plate", ""))
 	_tire_edit.text = str(vehicle.get("tire_size", ""))
 	_filter_edit.text = str(vehicle.get("oil_filter", ""))
+	_odometer_edit.text = DueMath.format_miles(int(vehicle.get("odometer", 0)))
 	_error.text = ""
-	_nick.text = _vehicle_display_name(vehicle)
 	_show_photo(str(vehicle.get("photo", "")))
 	_photo_sheet.visible = false
 	%SaveButton.pressed.connect(_on_save_pressed)
 	%AddCarButton.pressed.connect(_on_add_car_pressed)
+	PanScroll.wire_fields($Margin/PageHost/PageScroll)
+	PanScroll.wire($Margin/PageHost/PageScroll/Column/FormGroup, func() -> void: pass)
+	%ArchiveButton.pressed.connect(_on_archive_pressed)
 	%PhotoSlot.gui_input.connect(_on_photo_gui_input)
+	%PlaceholderRow.gui_input.connect(_on_photo_gui_input)
+	_odometer_edit.focus_exited.connect(_on_odometer_focus_exited)
 	%ChoosePhoto.pressed.connect(_on_choose_photo)
 	%TakePhoto.pressed.connect(_on_take_photo)
 	%RemovePhoto.pressed.connect(_on_remove_photo)
@@ -70,15 +81,94 @@ func _vehicle_display_name(vehicle: Dictionary) -> String:
 
 
 func _show_photo(filename: String) -> void:
+	for child in _photo_hole.get_children():
+		_photo_hole.remove_child(child)
+		child.queue_free()
+	for child in _place_hole.get_children():
+		_place_hole.remove_child(child)
+		child.queue_free()
+	var vehicle := _target_vehicle()
 	var tex := PhotoService.load_texture(filename)
 	if tex != null:
-		_photo_rect.texture = tex
-		_photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		_photo_rect.modulate = Color.WHITE
-	else:
-		_photo_rect.texture = ServiceIcons.CAR
-		_photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		_photo_rect.modulate = Color.WHITE
+		_photo_slot.visible = true
+		_placeholder.visible = false
+		var pic := TextureRect.new()
+		pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.modulate = Color.WHITE
+		pic.texture = tex
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_photo_hole.add_child(pic)
+		var fade := TextureRect.new()
+		fade.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		fade.anchor_top = 0.6
+		fade.offset_top = 0
+		fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		fade.stretch_mode = TextureRect.STRETCH_SCALE
+		fade.texture = _hero_fade_texture()
+		_photo_hole.add_child(fade)
+		var labels := VBoxContainer.new()
+		labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		labels.add_theme_constant_override("separation", 2)
+		labels.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		labels.anchor_top = 1.0
+		labels.offset_left = 12.0
+		labels.offset_right = -12.0
+		labels.offset_top = -72.0
+		labels.offset_bottom = -12.0
+		var nick := Label.new()
+		nick.text = _vehicle_display_name(vehicle)
+		nick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nick.add_theme_color_override("font_color", Color("#F4EFE6"))
+		nick.add_theme_font_size_override("font_size", 24)
+		var spec := Label.new()
+		spec.text = ("%s %s %s" % [
+			vehicle.get("year", ""),
+			vehicle.get("make", ""),
+			vehicle.get("model", ""),
+		]).strip_edges()
+		spec.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spec.add_theme_color_override("font_color", Color("#C8C2B8"))
+		spec.add_theme_font_size_override("font_size", 14)
+		labels.add_child(nick)
+		labels.add_child(spec)
+		_photo_hole.add_child(labels)
+		return
+	_photo_slot.visible = false
+	_placeholder.visible = true
+	%PlaceNick.text = _vehicle_display_name(vehicle)
+	%PlaceSpec.text = ("%s %s %s" % [
+		vehicle.get("year", ""),
+		vehicle.get("make", ""),
+		vehicle.get("model", ""),
+	]).strip_edges()
+	var wrap := CenterContainer.new()
+	wrap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var glyph := TextureRect.new()
+	glyph.texture = ServiceIcons.CAR
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	glyph.custom_minimum_size = Vector2(40, 40)
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(glyph)
+	_place_hole.add_child(wrap)
+
+
+func _hero_fade_texture() -> GradientTexture2D:
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0, 0, 0, 0))
+	grad.set_color(1, Color(0, 0, 0, 0.55))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_LINEAR
+	tex.fill_from = Vector2(0.5, 0.0)
+	tex.fill_to = Vector2(0.5, 1.0)
+	tex.width = 16
+	tex.height = 128
+	return tex
 
 
 func _open_sheet() -> void:
@@ -152,6 +242,10 @@ func _on_save_pressed() -> void:
 	if not year_raw.is_valid_int():
 		_error.text = "Enter year as a whole number."
 		return
+	var miles_raw := _odometer_edit.text.strip_edges().replace(",", "")
+	if miles_raw != "" and not miles_raw.is_valid_int():
+		_error.text = "Enter miles as a whole number."
+		return
 	GarageStore.update_primary_vehicle({
 		"year": int(year_raw),
 		"make": _make_edit.text.strip_edges(),
@@ -162,11 +256,51 @@ func _on_save_pressed() -> void:
 		"tire_size": _tire_edit.text.strip_edges(),
 		"oil_filter": _filter_edit.text.strip_edges(),
 	})
+	if miles_raw.is_valid_int():
+		GarageStore.set_odometer(int(miles_raw))
 	get_tree().change_scene_to_file("res://scenes/garage.tscn")
+
+
+func _on_odometer_focus_exited() -> void:
+	var raw := _odometer_edit.text.strip_edges().replace(",", "")
+	if raw.is_valid_int():
+		_odometer_edit.text = DueMath.format_miles(int(raw))
 
 
 func _on_add_car_pressed() -> void:
 	if GarageStore.is_unlocked() or GarageStore.vehicles_list().size() == 0:
 		get_tree().change_scene_to_file("res://scenes/vehicle_add.tscn")
 		return
+	_open_unlock()
+
+
+func _open_unlock() -> void:
+	GarageStore.unlock_back_scene = "res://scenes/vehicle_edit.tscn"
 	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
+
+
+func _on_archive_pressed() -> void:
+	if not GarageStore.is_unlocked():
+		_open_unlock()
+		return
+	var vehicle := _target_vehicle()
+	var nick := _vehicle_display_name(vehicle)
+	if nick == "":
+		nick = "this car"
+	ConfirmSheet.present(
+		self,
+		"Archive this car?",
+		"Hide %s from the garage. History stays." % nick,
+		"Keep",
+		"Archive",
+		_on_archive_confirm
+	)
+
+
+func _on_archive_confirm() -> void:
+	var vehicle := _target_vehicle()
+	var vehicle_id := str(vehicle.get("id", "")).strip_edges()
+	if vehicle_id == "":
+		return
+	GarageStore.set_archived(vehicle_id, true)
+	get_tree().change_scene_to_file("res://scenes/garage.tscn")

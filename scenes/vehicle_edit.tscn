@@ -1,8 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/vehicle_edit.gd" id="1_edit"]
 [ext_resource type="Script" path="res://scripts/back_to_garage.gd" id="2_back"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="3_back"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="4_safe"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="5_page"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_photo"]
 bg_color = Color(0.164706, 0.14902, 0.133333, 1)
@@ -18,16 +20,29 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tile"]
 bg_color = Color(0.164706, 0.14902, 0.133333, 1)
 corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
-content_margin_left = 20
-content_margin_top = 20
-content_margin_right = 20
-content_margin_bottom = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup"]
+bg_color = Color(0.164706, 0.14902, 0.133333, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_field"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
 
 [node name="VehicleEdit" type="Control"]
 layout_mode = 3
@@ -59,30 +74,44 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("4_safe")
 
-[node name="Column" type="VBoxContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
 layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("5_page")
+
+[node name="PageScroll" type="ScrollContainer" parent="Margin/PageHost"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost/PageScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="Back" type="Button" parent="Margin/Column"]
+[node name="Back" type="Button" parent="Margin/PageHost/PageScroll/Column"]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("3_back")
 expand_icon = true
 script = ExtResource("2_back")
 
-[node name="PhotoSlot" type="Panel" parent="Margin/Column"]
+[node name="PhotoSlot" type="Panel" parent="Margin/PageHost/PageScroll/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 200)
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 size_flags_horizontal = 3
 clip_contents = true
-clip_children = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_photo")
 
-[node name="PhotoPad" type="MarginContainer" parent="Margin/Column/PhotoSlot"]
+[node name="PhotoPad" type="MarginContainer" parent="Margin/PageHost/PageScroll/Column/PhotoSlot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -95,145 +124,387 @@ theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 4
 
-[node name="PhotoHole" type="Panel" parent="Margin/Column/PhotoSlot/PhotoPad"]
+[node name="PhotoHole" type="Panel" parent="Margin/PageHost/PageScroll/Column/PhotoSlot/PhotoPad"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 132)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 clip_contents = true
 clip_children = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_hole")
 
-[node name="PhotoRect" type="TextureRect" parent="Margin/Column/PhotoSlot/PhotoPad/PhotoHole"]
+[node name="PlaceholderRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PlaceTile" type="Panel" parent="Margin/PageHost/PageScroll/Column/PlaceholderRow"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+clip_contents = true
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tile")
+
+[node name="PlaceHole" type="Panel" parent="Margin/PageHost/PageScroll/Column/PlaceholderRow/PlaceTile"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+clip_contents = true
+clip_children = 2
 mouse_filter = 2
-expand_mode = 1
-stretch_mode = 6
+theme_override_styles/panel = SubResource("StyleBoxFlat_hole")
 
-[node name="NickLabel" type="Label" parent="Margin/Column"]
+[node name="PlaceNames" type="VBoxContainer" parent="Margin/PageHost/PageScroll/Column/PlaceholderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="PlaceNick" type="Label" parent="Margin/PageHost/PageScroll/Column/PlaceholderRow/PlaceNames"]
 unique_name_in_owner = true
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 24
 text = "Daily"
 
-[node name="FormScroll" type="ScrollContainer" parent="Margin/Column"]
+[node name="PlaceSpec" type="Label" parent="Margin/PageHost/PageScroll/Column/PlaceholderRow/PlaceNames"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_font_sizes/font_size = 13
+text = "2018 Honda Civic"
 
-[node name="FormGroup" type="PanelContainer" parent="Margin/Column/FormScroll"]
+[node name="FormGroup" type="PanelContainer" parent="Margin/PageHost/PageScroll/Column"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"GroupCard"
 
-[node name="Form" type="VBoxContainer" parent="Margin/Column/FormScroll/FormGroup"]
+[node name="FormPad" type="MarginContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 16
+
+[node name="Form" type="VBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 0
 
-[node name="YearCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="YearRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+theme_override_constants/separation = 12
+
+[node name="YearCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/YearRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Year"
+vertical_alignment = 1
 
-[node name="YearEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="YearEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/YearRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
+virtual_keyboard_type = 2
 
-[node name="MakeCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair1" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="MakeRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MakeCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/MakeRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Make"
+vertical_alignment = 1
 
-[node name="MakeEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="MakeEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/MakeRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="ModelCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair2" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="ModelRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ModelCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/ModelRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Model"
+vertical_alignment = 1
 
-[node name="ModelEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="ModelEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/ModelRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="NameCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair3" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="NameRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NameCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/NameRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Name"
+vertical_alignment = 1
 
-[node name="NameEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="NameEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/NameRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="VinCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair4" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="VinRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="VinCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/VinRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "VIN"
+vertical_alignment = 1
 
-[node name="VinEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="VinEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/VinRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="PlateCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair5" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="PlateRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PlateCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/PlateRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Plate"
+vertical_alignment = 1
 
-[node name="PlateEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="PlateEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/PlateRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="TireCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair6" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="OdometerRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="OdometerCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/OdometerRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "Odometer"
+vertical_alignment = 1
+
+[node name="OdometerEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/OdometerRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
+virtual_keyboard_type = 2
+
+[node name="Hair7" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="TireRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TireCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/TireRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Tire size"
+vertical_alignment = 1
 
-[node name="TireEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="TireEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/TireRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="FilterCaption" type="Label" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="Hair8" type="ColorRect" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="FilterRow" type="HBoxContainer" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="FilterCaption" type="Label" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/FilterRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
 text = "Oil filter"
+vertical_alignment = 1
 
-[node name="FilterEdit" type="LineEdit" parent="Margin/Column/FormScroll/FormGroup/Form"]
+[node name="FilterEdit" type="LineEdit" parent="Margin/PageHost/PageScroll/Column/FormGroup/FormPad/Form/FilterRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+alignment = 2
 
-[node name="ErrorLabel" type="Label" parent="Margin/Column"]
+[node name="CtaGap" type="Control" parent="Margin/PageHost/PageScroll/Column"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ErrorLabel" type="Label" parent="Margin/PageHost/PageScroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
 autowrap_mode = 3
 
-[node name="SaveButton" type="Button" parent="Margin/Column"]
+[node name="SaveButton" type="Button" parent="Margin/PageHost/PageScroll/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
+theme_type_variation = &"CreamButton"
 text = "Save"
 
-[node name="AddCarButton" type="Button" parent="Margin/Column"]
+[node name="AddCarButton" type="Button" parent="Margin/PageHost/PageScroll/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
+theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_colors/font_hover_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_colors/font_pressed_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_font_sizes/font_size = 17
 text = "Add another car"
+
+[node name="ArchiveButton" type="Button" parent="Margin/PageHost/PageScroll/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.784314, 0.760784, 0.721569, 1)
+theme_override_colors/font_hover_color = Color(0.784314, 0.760784, 0.721569, 1)
+theme_override_colors/font_pressed_color = Color(0.784314, 0.760784, 0.721569, 1)
+theme_override_font_sizes/font_size = 17
+text = "Archive"
 
 [node name="PhotoSheet" type="ColorRect" parent="."]
 unique_name_in_owner = true
@@ -266,25 +537,32 @@ theme_override_constants/separation = 8
 
 [node name="ChoosePhoto" type="Button" parent="PhotoSheet/Center/Panel/SheetColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+theme_override_font_sizes/font_size = 17
 text = "Choose photo"
 
 [node name="TakePhoto" type="Button" parent="PhotoSheet/Center/Panel/SheetColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+theme_override_font_sizes/font_size = 17
 text = "Take photo"
 
 [node name="RemovePhoto" type="Button" parent="PhotoSheet/Center/Panel/SheetColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_type_variation = &"DangerButton"
+theme_override_font_sizes/font_size = 17
 text = "Remove photo"
 
 [node name="PhotoCancel" type="Button" parent="PhotoSheet/Center/Panel/SheetColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_colors/font_hover_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_colors/font_pressed_color = Color(0.603922, 0.576471, 0.533333, 1)
+theme_override_font_sizes/font_size = 17
 text = "Cancel"

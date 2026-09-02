@@ -1,10 +1,17 @@
 extends Control
 
 const ServiceIcons = preload("res://scripts/service_icons.gd")
+const PanScroll = preload("res://scripts/pan_scroll.gd")
+const COLOR_SURFACE := Color("#2A2622")
+const COLOR_SELECTED := Color("#3D3832")
+const COLOR_CREAM := Color("#EDE4D4")
+const COLOR_PRIMARY := Color("#F4EFE6")
 
 var _choices: Array = []
+var _selected := -1
+var _row_buttons: Array = []
 
-@onready var _type_option: OptionButton = %TypeOption
+@onready var _type_rows: VBoxContainer = %TypeRows
 @onready var _custom_block: VBoxContainer = %CustomBlock
 @onready var _name_edit: LineEdit = %NameEdit
 @onready var _miles_edit: LineEdit = %MilesEdit
@@ -13,17 +20,19 @@ var _choices: Array = []
 
 
 func _ready() -> void:
-	_type_option.add_theme_constant_override("icon_max_width", 28)
 	_fill_types()
-	_type_option.item_selected.connect(_on_type_selected)
 	%AddButton.pressed.connect(_on_add_pressed)
-	_on_type_selected(_type_option.selected)
+	_apply_selection(-1)
 	_error.text = ""
+	PanScroll.wire_fields(_custom_block)
 
 
 func _fill_types() -> void:
 	_choices.clear()
-	_type_option.clear()
+	for child in _type_rows.get_children():
+		_type_rows.remove_child(child)
+		child.queue_free()
+	_row_buttons.clear()
 	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
 	if vehicle.is_empty():
 		vehicle = GarageStore.primary_vehicle()
@@ -32,25 +41,97 @@ func _fill_types() -> void:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		taken[str(item.get("type_id", ""))] = true
+	var custom_tmpl: Dictionary = {}
 	for tmpl in GarageStore.load_templates():
 		if typeof(tmpl) != TYPE_DICTIONARY:
 			continue
 		var type_id := str(tmpl.get("id", ""))
 		if type_id == "":
 			continue
-		if type_id != "custom" and taken.has(type_id):
+		if type_id == "custom":
+			custom_tmpl = tmpl
+			continue
+		if taken.has(type_id):
 			continue
 		_choices.append(tmpl)
-		_type_option.add_icon_item(
-			ServiceIcons.texture_for(type_id),
-			str(tmpl.get("name", type_id)),
-		)
-	if _choices.is_empty():
-		_choices.append({"id": "custom", "name": "Custom", "interval_miles": 0, "interval_months": 0})
-		_type_option.add_icon_item(ServiceIcons.WRENCH, "Custom")
+	if custom_tmpl.is_empty():
+		custom_tmpl = {"id": "custom", "name": "Custom", "interval_miles": 0, "interval_months": 0}
+	_choices.append(custom_tmpl)
+	for i in range(_choices.size()):
+		var row_tmpl: Dictionary = _choices[i]
+		var btn := _make_type_row(i, row_tmpl)
+		_row_buttons.append(btn)
+		_type_rows.add_child(btn)
+		if i < _choices.size() - 1:
+			var line := ColorRect.new()
+			line.custom_minimum_size = Vector2(0, 1)
+			line.color = COLOR_SELECTED
+			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_type_rows.add_child(line)
+	_selected = -1
 
 
-func _on_type_selected(_index: int) -> void:
+func _make_type_row(index: int, tmpl: Dictionary) -> Button:
+	var type_id := str(tmpl.get("id", ""))
+	var btn := Button.new()
+	btn.custom_minimum_size = Vector2(0, 52)
+	btn.clip_contents = false
+	btn.flat = true
+	btn.text = ""
+	btn.pressed.connect(_on_type_row_pressed.bind(index))
+	PanScroll.wire(btn, _on_type_row_pressed.bind(index))
+
+	var hbox := HBoxContainer.new()
+	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hbox.offset_left = 12
+	hbox.offset_right = -12
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_theme_constant_override("separation", 10)
+
+	var glyph := TextureRect.new()
+	glyph.texture = ServiceIcons.texture_for(type_id)
+	glyph.custom_minimum_size = Vector2(28, 28)
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	glyph.modulate = Color.WHITE
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	var label := Label.new()
+	label.text = str(tmpl.get("name", type_id))
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", COLOR_PRIMARY)
+	label.add_theme_font_size_override("font_size", 17)
+
+	hbox.add_child(glyph)
+	hbox.add_child(label)
+	btn.add_child(hbox)
+	btn.add_theme_stylebox_override("normal", _row_style(false))
+	btn.add_theme_stylebox_override("hover", _row_style(false))
+	btn.add_theme_stylebox_override("pressed", _row_style(false))
+	btn.add_theme_stylebox_override("focus", _row_style(false))
+	return btn
+
+
+func _on_type_row_pressed(index: int) -> void:
+	_apply_selection(index)
+
+
+func _apply_selection(index: int) -> void:
+	if index >= _choices.size():
+		return
+	_selected = index
+	for i in range(_row_buttons.size()):
+		var btn: Button = _row_buttons[i]
+		var on := i == _selected
+		btn.add_theme_stylebox_override("normal", _row_style(on))
+		btn.add_theme_stylebox_override("hover", _row_style(on))
+		btn.add_theme_stylebox_override("pressed", _row_style(on))
+		btn.add_theme_stylebox_override("focus", _row_style(on))
+	var picked := _selected >= 0
+	%AddButton.disabled = not picked
 	var tmpl := _selected_template()
 	var is_custom := str(tmpl.get("id", "")) == "custom"
 	_custom_block.visible = is_custom
@@ -60,13 +141,28 @@ func _on_type_selected(_index: int) -> void:
 		_months_edit.text = ""
 
 
+func _row_style(selected: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_SELECTED if selected else COLOR_SURFACE
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 12
+	style.content_margin_bottom = 12
+	if selected:
+		style.border_color = COLOR_CREAM
+		style.border_width_left = 1
+		style.border_width_top = 1
+		style.border_width_right = 1
+		style.border_width_bottom = 1
+	return style
+
+
 func _selected_template() -> Dictionary:
-	var i := _type_option.selected
-	if i < 0 or i >= _choices.size():
+	if _selected < 0 or _selected >= _choices.size():
 		return {}
-	if typeof(_choices[i]) != TYPE_DICTIONARY:
+	if typeof(_choices[_selected]) != TYPE_DICTIONARY:
 		return {}
-	return _choices[i]
+	return _choices[_selected]
 
 
 func _on_add_pressed() -> void:

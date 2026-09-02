@@ -19,6 +19,7 @@ var pending_import: Dictionary = {}
 var last_backup_error: String = ""
 var pending_restore_path: String = ""
 var pending_receipt_src: String = ""
+var unlock_back_scene: String = "res://scenes/garage.tscn"
 
 
 func _ready() -> void:
@@ -67,6 +68,7 @@ func set_odometer(miles: int) -> void:
 	vehicle["odometer"] = miles
 	vehicle["odometer_date"] = today_ymd()
 	save()
+	NotifyService.reschedule()
 
 
 func _current_vehicle() -> Dictionary:
@@ -83,6 +85,43 @@ func is_unlocked() -> bool:
 func set_unlocked(v: bool) -> void:
 	data["unlocked"] = v
 	save()
+	NotifyService.reschedule()
+
+
+func archived_list() -> Array:
+	var out: Array = []
+	for item in data.get("vehicles", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var vehicle: Dictionary = item
+		if bool(vehicle.get("archived", false)):
+			out.append(vehicle)
+	return out
+
+
+func set_archived(vehicle_id: String, archived: bool) -> void:
+	var vehicle := vehicle_by_id(vehicle_id)
+	if vehicle.is_empty():
+		return
+	vehicle["archived"] = archived
+	if archived and selected_vehicle_id == vehicle_id:
+		var live := vehicles_list()
+		if live.size() >= 1:
+			selected_vehicle_id = str(live[0].get("id", ""))
+		else:
+			selected_vehicle_id = ""
+	save()
+	NotifyService.reschedule()
+
+
+func set_service_notify(on: bool) -> void:
+	var vehicle := vehicle_by_id(selected_vehicle_id)
+	var service := service_by_id(vehicle, selected_service_id)
+	if service.is_empty():
+		return
+	service["notify"] = on
+	save()
+	NotifyService.reschedule()
 
 
 func vehicles_list() -> Array:
@@ -222,6 +261,7 @@ func log_service(date: String, miles: int, cost_cents: int, notes: String) -> bo
 			var row: Dictionary = history[history.size() - 1]
 			row["receipt"] = dest_name
 			save()
+	NotifyService.reschedule()
 	return true
 
 
@@ -243,6 +283,111 @@ func history_for_selected() -> Array:
 		out.append(row)
 	out.sort_custom(_history_newer)
 	return out
+
+
+func history_job(hid: String) -> Dictionary:
+	var want := hid.strip_edges()
+	if want == "":
+		return {}
+	var vehicle := vehicle_by_id(selected_vehicle_id)
+	if vehicle.is_empty():
+		return {}
+	for item in vehicle.get("history", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var row: Dictionary = item
+		if str(row.get("id", "")) == want:
+			return row
+	return {}
+
+
+func update_history(hid: String, date: String, miles: int, cost_cents: int, notes: String) -> bool:
+	if DueMath.parse_ymd(date).is_empty():
+		return false
+	if miles < 0:
+		return false
+	var vehicle := vehicle_by_id(selected_vehicle_id)
+	if vehicle.is_empty():
+		return false
+	var job := history_job(hid)
+	if job.is_empty():
+		return false
+	if str(job.get("service_id", "")) != selected_service_id:
+		return false
+	var service := service_by_id(vehicle, selected_service_id)
+	if service.is_empty():
+		return false
+	job["date"] = date
+	job["miles"] = miles
+	job["cost_cents"] = cost_cents
+	job["notes"] = notes
+	_roll_from_history(vehicle, service)
+	if miles > int(vehicle.get("odometer", 0)):
+		vehicle["odometer"] = miles
+		vehicle["odometer_date"] = date
+	save()
+	var src := pending_receipt_src.strip_edges()
+	pending_receipt_src = ""
+	if src != "":
+		var dest_name := str(job.get("receipt", "")).strip_edges()
+		if dest_name == "":
+			dest_name = "%s.jpg" % hid.strip_edges()
+		if PhotoService.save_jpeg(src, dest_name):
+			job["receipt"] = dest_name
+			save()
+	NotifyService.reschedule()
+	return true
+
+
+func delete_history(hid: String) -> bool:
+	var want := hid.strip_edges()
+	if want == "":
+		return false
+	var vehicle := vehicle_by_id(selected_vehicle_id)
+	if vehicle.is_empty():
+		return false
+	if not vehicle.has("history") or typeof(vehicle["history"]) != TYPE_ARRAY:
+		return false
+	var history: Array = vehicle["history"]
+	var sid := ""
+	var kept: Array = []
+	var found := false
+	for item in history:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var row: Dictionary = item
+		if str(row.get("id", "")) == want:
+			found = true
+			sid = str(row.get("service_id", ""))
+			PhotoService.delete_photo(str(row.get("receipt", "")))
+			continue
+		kept.append(row)
+	if not found:
+		return false
+	vehicle["history"] = kept
+	var service := service_by_id(vehicle, sid)
+	if not service.is_empty():
+		_roll_from_history(vehicle, service)
+	selected_history_id = ""
+	save()
+	NotifyService.reschedule()
+	return true
+
+
+func _roll_from_history(vehicle: Dictionary, service: Dictionary) -> void:
+	var newest := _newest_history_for(vehicle, str(service.get("id", "")))
+	if newest.is_empty():
+		service["last_date"] = ""
+		service["last_miles"] = 0
+		service["next_date"] = ""
+		service["next_miles"] = 0
+		return
+	service["last_date"] = str(newest.get("date", ""))
+	service["last_miles"] = _as_int(newest.get("miles"), 0)
+	var interval_miles := _as_int(service.get("interval_miles"), 0)
+	var interval_months := _as_int(service.get("interval_months"), 0)
+	service["next_date"] = DueMath.compute_next_date(str(service["last_date"]), interval_months)
+	service["next_miles"] = DueMath.compute_next_miles(int(service["last_miles"]), interval_miles)
 
 
 func update_primary_vehicle(fields: Dictionary) -> void:
@@ -294,6 +439,7 @@ func update_service_intervals(interval_miles: int, interval_months: int) -> bool
 		service["next_date"] = ""
 		service["next_miles"] = 0
 	save()
+	NotifyService.reschedule()
 	return true
 
 
@@ -321,11 +467,14 @@ func delete_selected_service() -> bool:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		if str(item.get("service_id", "")) == sid:
+			PhotoService.delete_photo(str(item.get("receipt", "")))
 			continue
 		kept_history.append(item)
 	vehicle["history"] = kept_history
 	selected_service_id = ""
+	selected_history_id = ""
 	save()
+	NotifyService.reschedule()
 	return true
 
 
@@ -677,68 +826,83 @@ func _migrate(payload: Dictionary, from_version: int) -> Dictionary:
 
 
 func _seed() -> Dictionary:
-	var today := today_ymd()
 	return {
 		"schema": SCHEMA,
 		"units": "mi",
 		"currency": "USD",
 		"notify_lead_days": 7,
 		"unlocked": false,
-		"vehicles": [
-			{
-				"id": "v1",
-				"year": 2018,
-				"make": "Honda",
-				"model": "Civic",
-				"name": "2018 Civic",
-				"vin": "",
-				"plate": "",
-				"odometer": 87420,
-				"odometer_date": today,
-				"photo": "",
-				"archived": false,
-				"services": [
-					{
-						"id": "svc_oil",
-						"type_id": "oil_change",
-						"label": "Oil change",
-						"interval_miles": 5000,
-						"interval_months": 6,
-						"last_date": add_days_ymd(today, -210),
-						"last_miles": 80000,
-						"next_date": add_days_ymd(today, -30),
-						"next_miles": 85000,
-						"notify": true,
-					},
-					{
-						"id": "svc_tire",
-						"type_id": "tire_rotation",
-						"label": "Tire rotation",
-						"interval_miles": 7500,
-						"interval_months": 6,
-						"last_date": add_days_ymd(today, -177),
-						"last_miles": 80120,
-						"next_date": add_days_ymd(today, 3),
-						"next_miles": 87620,
-						"notify": true,
-					},
-					{
-						"id": "svc_brake",
-						"type_id": "brake_inspect",
-						"label": "Brake inspection",
-						"interval_miles": null,
-						"interval_months": 12,
-						"last_date": add_days_ymd(today, -185),
-						"last_miles": null,
-						"next_date": add_days_ymd(today, 180),
-						"next_miles": null,
-						"notify": true,
-					},
-				],
-				"history": [],
-			}
-		],
+		"vehicles": [],
 	}
+
+
+func demo_vehicle() -> Dictionary:
+	var today := today_ymd()
+	return {
+		"id": "v1",
+		"year": 2018,
+		"make": "Honda",
+		"model": "Civic",
+		"name": "2018 Civic",
+		"vin": "",
+		"plate": "",
+		"odometer": 87420,
+		"odometer_date": today,
+		"photo": "",
+		"archived": false,
+		"services": [
+			{
+				"id": "svc_oil",
+				"type_id": "oil_change",
+				"label": "Oil change",
+				"interval_miles": 5000,
+				"interval_months": 6,
+				"last_date": add_days_ymd(today, -210),
+				"last_miles": 80000,
+				"next_date": add_days_ymd(today, -30),
+				"next_miles": 85000,
+				"notify": true,
+			},
+			{
+				"id": "svc_tire",
+				"type_id": "tire_rotation",
+				"label": "Tire rotation",
+				"interval_miles": 7500,
+				"interval_months": 6,
+				"last_date": add_days_ymd(today, -177),
+				"last_miles": 80120,
+				"next_date": add_days_ymd(today, 3),
+				"next_miles": 87620,
+				"notify": true,
+			},
+			{
+				"id": "svc_brake",
+				"type_id": "brake_inspect",
+				"label": "Brake inspection",
+				"interval_miles": null,
+				"interval_months": 12,
+				"last_date": add_days_ymd(today, -185),
+				"last_miles": null,
+				"next_date": add_days_ymd(today, 180),
+				"next_miles": null,
+				"notify": true,
+			},
+		],
+		"history": [],
+	}
+
+
+func load_demo() -> void:
+	if not data.has("vehicles") or typeof(data["vehicles"]) != TYPE_ARRAY:
+		data["vehicles"] = []
+	var vehicle := demo_vehicle()
+	vehicle["id"] = _next_vehicle_id()
+	var vehicles: Array = data["vehicles"]
+	vehicles.append(vehicle)
+	selected_vehicle_id = str(vehicle.get("id", ""))
+	selected_service_id = ""
+	save()
+	NotifyService.reschedule()
 
 
 func _try_parse(path: String) -> Dictionary:
@@ -864,7 +1028,7 @@ func _coerce_ints(payload: Dictionary) -> void:
 			_coerce_optional_int(service, "interval_months")
 			_coerce_optional_int(service, "last_miles")
 			_coerce_optional_int(service, "next_miles")
-			service["notify"] = bool(service.get("notify", true))
+			service["notify"] = bool(service.get("notify", false))
 		for hist_item in vehicle.get("history", []):
 			if typeof(hist_item) != TYPE_DICTIONARY:
 				continue

@@ -1,0 +1,63 @@
+name: iOS TestFlight
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_macos_export:
+        description: "Run macOS export + xcodebuild (needs a provisioning profile)"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate iOS plugins
+        run: |
+          set -euo pipefail
+          grep -q 'plugins/StoreKit=true' export_presets.cfg
+          grep -q 'plugins/NotificationSchedulerPlugin=true' export_presets.cfg
+          grep -q 'plugins/PhotoPicker=true' export_presets.cfg
+          grep -q 'plugins/DatePicker=true' export_presets.cfg
+          test -f ios/plugins/storekit/StoreKit.gdip
+          test -f ios/plugins/photopicker/PhotoPicker.gdip
+          test -f ios/plugins/datepicker/DatePicker.gdip
+          test -f ios/plugins/NotificationSchedulerPlugin/NotificationSchedulerPlugin.gdip
+          test -f native/godot-storekit/src/GodotPluginEntry.cpp
+          test -f native/godot-storekit/src/storekit_plugin.mm
+          test -f native/godot-photopicker/photo_picker.mm
+          test -f native/godot-photopicker/photo_picker_module.cpp
+          test -f native/godot-datepicker/date_picker.mm
+          test -f native/godot-datepicker/date_picker_module.cpp
+          test -f native/build_plugins.sh
+          test -f addons/NotificationSchedulerPlugin/plugin.cfg
+          if grep -q 'plugins/exported=' export_presets.cfg; then
+            echo "::error::Do not use plugins/exported= — use plugins/StoreKit=true, plugins/NotificationSchedulerPlugin=true, plugins/PhotoPicker=true, plugins/DatePicker=true"
+            exit 1
+          fi
+          if grep -nE '^\s*#' ios/plugins/**/*.gdip ios/plugins/*.gdip 2>/dev/null; then
+            echo "::error::Remove # comments from .gdip files (use ; )"
+            exit 1
+          fi
+          echo "Preflight OK: StoreKit, NotificationSchedulerPlugin, PhotoPicker, DatePicker"
+
+  build-ios:
+    needs: preflight
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_macos_export }}
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - name: Profile required
+        run: |
+          echo "export_project_only + xcodebuild wait until a provisioning profile exists."
+          echo "UUID is empty in export_presets.cfg. Do not archive this pass."
+          exit 0

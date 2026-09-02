@@ -1,9 +1,22 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/settings.gd" id="1_settings"]
 [ext_resource type="Script" path="res://scripts/back_to_garage.gd" id="2_back"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="3_back"]
 [ext_resource type="Texture2D" path="res://assets/icons/chevron_right.png" id="4_chevron"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="5_safe"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="6_page"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup"]
+bg_color = Color(0.164706, 0.14902, 0.133333, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
 
 [node name="Settings" type="Control"]
 layout_mode = 3
@@ -35,67 +48,133 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("5_safe")
 
-[node name="Scroll" type="ScrollContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("6_page")
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/PageHost"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="Column" type="VBoxContainer" parent="Margin/Scroll"]
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 20
+theme_override_constants/separation = 10
 
-[node name="Back" type="Button" parent="Margin/Scroll/Column"]
+[node name="Back" type="Button" parent="Margin/PageHost/Scroll/Column"]
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("3_back")
 expand_icon = true
 script = ExtResource("2_back")
 
-[node name="Title" type="Label" parent="Margin/Scroll/Column"]
+[node name="Title" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ScreenTitle"
 text = "Settings"
 
-[node name="GroupLead" type="PanelContainer" parent="Margin/Scroll/Column"]
+[node name="RemindersCaption" type="Label" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+text = "Reminders"
+
+[node name="GroupLead" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
 theme_type_variation = &"GroupCard"
 
-[node name="LeadPad" type="MarginContainer" parent="Margin/Scroll/Column/GroupLead"]
+[node name="LeadPad" type="MarginContainer" parent="Margin/PageHost/Scroll/Column/GroupLead"]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 0
 
-[node name="LeadRow" type="HBoxContainer" parent="Margin/Scroll/Column/GroupLead/LeadPad"]
+[node name="LeadRow" type="HBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupLead/LeadPad"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="LeadCaption" type="Label" parent="Margin/Scroll/Column/GroupLead/LeadPad/LeadRow"]
+[node name="LeadCaption" type="Label" parent="Margin/PageHost/Scroll/Column/GroupLead/LeadPad/LeadRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 text = "Lead days"
 vertical_alignment = 1
 
-[node name="LeadOption" type="OptionButton" parent="Margin/Scroll/Column/GroupLead/LeadPad/LeadRow"]
+[node name="LeadOption" type="OptionButton" parent="Margin/PageHost/Scroll/Column/GroupLead/LeadPad/LeadRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
+theme_override_font_sizes/font_size = 17
 fit_to_longest_item = true
 
-[node name="GroupHelp" type="PanelContainer" parent="Margin/Scroll/Column"]
+[node name="PurchasesCaption" type="Label" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+text = "Purchases"
+
+[node name="GroupRestore" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
 theme_type_variation = &"GroupCard"
 
-[node name="HelpButton" type="Button" parent="Margin/Scroll/Column/GroupHelp"]
+[node name="RestorePurchasesButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupRestore"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Restore purchases"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="GroupArchived" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="ArchivedCol" type="VBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupArchived"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ArchivedPad" type="MarginContainer" parent="Margin/PageHost/Scroll/Column/GroupArchived/ArchivedCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 12
+
+[node name="ArchivedCaption" type="Label" parent="Margin/PageHost/Scroll/Column/GroupArchived/ArchivedCol/ArchivedPad"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"Caption"
+vertical_alignment = 1
+text = "Archived cars"
+
+[node name="ArchiveRows" type="VBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupArchived/ArchivedCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="AboutCaption" type="Label" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+text = "About"
+
+[node name="GroupHelp" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="HelpButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupHelp"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -106,15 +185,20 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
-[node name="GroupImport" type="PanelContainer" parent="Margin/Scroll/Column"]
+[node name="DataCaption" type="Label" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+text = "Data"
+
+[node name="GroupImport" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
 theme_type_variation = &"GroupCard"
 
-[node name="ImportCol" type="VBoxContainer" parent="Margin/Scroll/Column/GroupImport"]
+[node name="ImportCol" type="VBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupImport"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="ImportCsvButton" type="Button" parent="Margin/Scroll/Column/GroupImport/ImportCol"]
+[node name="ImportCsvButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupImport/ImportCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -125,32 +209,15 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
-[node name="HairImport" type="ColorRect" parent="Margin/Scroll/Column/GroupImport/ImportCol"]
-custom_minimum_size = Vector2(0, 1)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.239216, 0.219608, 0.196078, 1)
-
-[node name="ImportSampleButton" type="Button" parent="Margin/Scroll/Column/GroupImport/ImportCol"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-theme_type_variation = &"SettingsRow"
-alignment = 0
-text = "Import VMT sample"
-icon = ExtResource("4_chevron")
-icon_alignment = 2
-expand_icon = true
-
-[node name="GroupBackup" type="PanelContainer" parent="Margin/Scroll/Column"]
+[node name="GroupBackup" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
 theme_type_variation = &"GroupCard"
 
-[node name="BackupCol" type="VBoxContainer" parent="Margin/Scroll/Column/GroupBackup"]
+[node name="BackupCol" type="VBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupBackup"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="ExportCsvButton" type="Button" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="ExportCsvButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -161,13 +228,13 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
-[node name="HairBackup1" type="ColorRect" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="HairBackup1" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 mouse_filter = 2
 color = Color(0.239216, 0.219608, 0.196078, 1)
 
-[node name="BackupZipButton" type="Button" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="BackupZipButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -178,13 +245,13 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
-[node name="HairBackup2" type="ColorRect" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="HairBackup2" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 mouse_filter = 2
 color = Color(0.239216, 0.219608, 0.196078, 1)
 
-[node name="RestoreZipButton" type="Button" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="RestoreZipButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -195,13 +262,13 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
-[node name="HairBackup3" type="ColorRect" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="HairBackup3" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 mouse_filter = 2
 color = Color(0.239216, 0.219608, 0.196078, 1)
 
-[node name="RestoreLastButton" type="Button" parent="Margin/Scroll/Column/GroupBackup/BackupCol"]
+[node name="RestoreLastButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -212,52 +279,90 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
-[node name="GroupDeveloper" type="PanelContainer" parent="Margin/Scroll/Column"]
+[node name="GroupDeveloper" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_type_variation = &"GroupCard"
 
-[node name="DevPad" type="MarginContainer" parent="Margin/Scroll/Column/GroupDeveloper"]
+[node name="DevCol" type="VBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupDeveloper"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="DevPad" type="MarginContainer" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 0
 
-[node name="DevRow" type="HBoxContainer" parent="Margin/Scroll/Column/GroupDeveloper/DevPad"]
+[node name="DevRow" type="HBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol/DevPad"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="DevLabel" type="Label" parent="Margin/Scroll/Column/GroupDeveloper/DevPad/DevRow"]
+[node name="DevLabel" type="Label" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol/DevPad/DevRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 text = "Pretend unlocked"
 vertical_alignment = 1
 
-[node name="UnlockCheck" type="CheckButton" parent="Margin/Scroll/Column/GroupDeveloper/DevPad/DevRow"]
+[node name="UnlockCheck" type="CheckButton" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol/DevPad/DevRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
 
-[node name="StatusLabel" type="Label" parent="Margin/Scroll/Column"]
+[node name="HairDev1" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="LoadDemoButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Load demo Civic"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="HairDev2" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="ImportSampleButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Import VMT sample"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="StatusLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+theme_type_variation = &"Caption"
 autowrap_mode = 3
 
-[node name="VersionLabel" type="Label" parent="Margin/Scroll/Column"]
+[node name="VersionLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-text = "Version 0.1.0"
+theme_type_variation = &"Caption"
+text = "Version 1.0.0"
 
-[node name="PrivacyLabel" type="Label" parent="Margin/Scroll/Column"]
+[node name="PrivacyLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
+theme_type_variation = &"Caption"
 autowrap_mode = 3
 text = "Logs and receipts never leave this device."
 
@@ -280,3 +385,60 @@ access = 2
 filters = PackedStringArray("*.csv ; CSV")
 use_native_dialog = true
 visible = false
+
+[node name="FilePickSheet" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.101961, 0.090196, 0.078431, 0.55)
+
+[node name="Center" type="CenterContainer" parent="FilePickSheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="FilePickSheet/Center"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_popup")
+
+[node name="SheetColumn" type="VBoxContainer" parent="FilePickSheet/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FilePickEmpty" type="Label" parent="FilePickSheet/Center/Panel/SheetColumn"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"Caption"
+autowrap_mode = 3
+text = "Put a CSV in Files, On My iPhone, Oil Due."
+
+[node name="FilePickScroll" type="ScrollContainer" parent="FilePickSheet/Center/Panel/SheetColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="FilePickRows" type="VBoxContainer" parent="FilePickSheet/Center/Panel/SheetColumn/FilePickScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="FilePickCancel" type="Button" parent="FilePickSheet/Center/Panel/SheetColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"CreamButton"
+text = "Cancel"

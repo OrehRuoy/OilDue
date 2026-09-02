@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/import_preview.gd" id="1_preview"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="2_safe"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="3_page"]
 
 [node name="ImportPreview" type="Control"]
 layout_mode = 3
@@ -32,63 +34,69 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("2_safe")
 
-[node name="Column" type="VBoxContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_page")
+
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost"]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="Title" type="Label" parent="Margin/Column"]
+[node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ScreenTitle"
 text = "Import preview"
 
-[node name="FormGroup" type="PanelContainer" parent="Margin/Column"]
+[node name="FormGroup" type="PanelContainer" parent="Margin/PageHost/Column"]
 layout_mode = 2
 
-[node name="Form" type="VBoxContainer" parent="Margin/Column/FormGroup"]
+[node name="Form" type="VBoxContainer" parent="Margin/PageHost/Column/FormGroup"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="KindLabel" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="KindLabel" type="Label" parent="Margin/PageHost/Column/FormGroup/Form"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 text = "kind"
 
-[node name="SummaryLabel" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="SummaryLabel" type="Label" parent="Margin/PageHost/Column/FormGroup/Form"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 text = "summary"
 
-[node name="PhotosLabel" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="PhotosLabel" type="Label" parent="Margin/PageHost/Column/FormGroup/Form"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 text = "CSV does not include photos."
 
-[node name="WarningLabel" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="WarningLabel" type="Label" parent="Margin/PageHost/Column/FormGroup/Form"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="ErrorLabel" type="Label" parent="Margin/Column"]
+[node name="ErrorLabel" type="Label" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
 autowrap_mode = 3
 
-[node name="Spacer" type="Control" parent="Margin/Column"]
+[node name="Spacer" type="Control" parent="Margin/PageHost/Column"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MergeButton" type="Button" parent="Margin/Column"]
+[node name="MergeButton" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Merge onto this car"
 
-[node name="CancelButton" type="Button" parent="Margin/Column"]
+[node name="CancelButton" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2

@@ -1,5 +1,8 @@
 extends Control
 
+const PanScroll = preload("res://scripts/pan_scroll.gd")
+const DueMath = preload("res://scripts/due_math.gd")
+
 @onready var _year_edit: LineEdit = %YearEdit
 @onready var _make_edit: LineEdit = %MakeEdit
 @onready var _model_edit: LineEdit = %ModelEdit
@@ -12,10 +15,19 @@ func _ready() -> void:
 	_error.text = ""
 	%AddButton.pressed.connect(_on_add_pressed)
 	%Back.pressed.connect(_on_back_pressed)
+	_miles_edit.focus_exited.connect(_on_miles_focus_exited)
+	PanScroll.wire_fields($Margin/PageHost)
+	PanScroll.wire($Margin/PageHost/Column/FormGroup, func() -> void: pass)
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/vehicle_edit.tscn")
+	get_tree().change_scene_to_file("res://scenes/garage.tscn")
+
+
+func _on_miles_focus_exited() -> void:
+	var raw := _miles_edit.text.strip_edges().replace(",", "")
+	if raw.is_valid_int():
+		_miles_edit.text = DueMath.format_miles(int(raw))
 
 
 func _on_add_pressed() -> void:

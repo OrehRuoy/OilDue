@@ -149,6 +149,21 @@ static func format_cents(cents: int) -> String:
 	return "$%d.%02d" % [dollars, rem]
 
 
+static func format_miles(value: int) -> String:
+	var n := value
+	if n < 0:
+		n = 0
+	var digits := str(n)
+	var out := ""
+	var count := 0
+	for i in range(digits.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			out = "," + out
+		out = digits[i] + out
+		count += 1
+	return out
+
+
 static func _is_leap(year: int) -> bool:
 	return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 

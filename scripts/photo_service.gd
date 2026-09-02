@@ -10,11 +10,11 @@ const INBOX_FILE := "_pick.jpg"
 const SOURCE_PHOTO_LIBRARY := 1
 const SOURCE_CAMERA_REAR := 4
 
-# iOS PhotoPicker is GDScript-ready. The exported binary must include
-# PhotoPicker PR #105 (Godot 4.6 root VC is nil without it). Do not vendor
-# an xcframework in this pass. Never store a PHAsset / Photo Library id.
+# iOS PhotoPicker: Engine singleton when the export plugin is present.
+# Binary is PR #105 (Godot 4.6 root VC). Never store a PHAsset / Photo Library id.
 
 var _dialog: FileDialog
+var _warned_missing := false
 
 
 func _ready() -> void:
@@ -24,7 +24,7 @@ func _ready() -> void:
 	_dialog.use_native_dialog = true
 	_dialog.title = "Pick a photo"
 	_dialog.filters = PackedStringArray([
-		"*.jpg, *.jpeg, *.png ; Images",
+		"*.jpg, *.jpeg, *.png, *.webp ; Images",
 	])
 	_dialog.visible = false
 	_dialog.file_selected.connect(_on_file_selected)
@@ -77,6 +77,14 @@ func save_image(img: Image, dest_filename: String) -> bool:
 	return img.save_jpg(dest, JPEG_QUALITY) == OK
 
 
+func delete_photo(filename: String) -> void:
+	var path := photo_path(filename)
+	if path == "":
+		return
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+
+
 func pick_image() -> void:
 	pick_library()
 
@@ -89,15 +97,46 @@ func pick_camera() -> void:
 	_present(SOURCE_CAMERA_REAR)
 
 
+func ios_photopicker() -> bool:
+	return OS.has_feature("ios") and Engine.has_singleton("PhotoPicker")
+
+
 func _present(source: int) -> void:
-	if Engine.has_singleton("PhotoPicker"):
-		var picker := Engine.get_singleton("PhotoPicker")
-		var cb := Callable(self, "_on_plugin_image")
-		if not picker.is_connected("image_picked", cb):
-			picker.connect("image_picked", cb)
-		picker.call("present", source)
+	if ios_photopicker():
+		_present_plugin(source)
+		return
+	if OS.has_feature("ios"):
+		_ios_stub()
 		return
 	_dialog.popup_centered()
+
+
+func _present_plugin(source: int) -> void:
+	var picker := Engine.get_singleton("PhotoPicker")
+	if picker == null:
+		_ios_stub()
+		return
+	var cb := Callable(self, "_on_plugin_image")
+	if picker.has_signal("image_picked") and not picker.is_connected("image_picked", cb):
+		picker.connect("image_picked", cb)
+	var fail_cb := Callable(self, "_on_plugin_failed")
+	if picker.has_signal("image_pick_failed") and not picker.is_connected("image_pick_failed", fail_cb):
+		picker.connect("image_pick_failed", fail_cb)
+	if picker.has_method("present"):
+		picker.call("present", source)
+		return
+	failed.emit("Couldn't read that photo.")
+
+
+func _ios_stub() -> void:
+	if not _warned_missing:
+		_warned_missing = true
+		push_warning("PhotoService: PhotoPicker plugin not present; picker not wired yet.")
+	failed.emit("Photo picker not wired yet")
+
+
+func _on_plugin_failed(_message: Variant = "") -> void:
+	failed.emit("Couldn't read that photo.")
 
 
 func _on_plugin_image(img: Image) -> void:

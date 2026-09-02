@@ -2,12 +2,16 @@ extends Control
 
 const DueMath = preload("res://scripts/due_math.gd")
 const ServiceIcons = preload("res://scripts/service_icons.gd")
+const PanScroll = preload("res://scripts/pan_scroll.gd")
+const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 const TAP_MIN := 44.0
 const EMPTY_MIN := 52.0
-const COLOR_PRIMARY := Color("#F2F2F7")
+const ROW_MIN := 80.0
+const COLOR_PRIMARY := Color("#F4EFE6")
 const COLOR_SURFACE := Color("#2A2622")
 const COLOR_HAIRLINE := Color("#3D3832")
-const COLOR_SECONDARY := Color("#8E8E93")
+const COLOR_SECONDARY := Color("#9A9388")
+const COLOR_MUTED := Color("#9A9388")
 
 @onready var _title: Label = %Title
 @onready var _title_icon: TextureRect = %TitleIcon
@@ -32,6 +36,7 @@ func _ready() -> void:
 	%LogButton.pressed.connect(_on_log_pressed)
 	%SaveIntervalsButton.pressed.connect(_on_save_intervals_pressed)
 	%DeleteServiceButton.pressed.connect(_on_delete_pressed)
+	PanScroll.wire_fields($Margin/PageHost/Column/PageScroll)
 
 
 func _ensure_selection() -> void:
@@ -66,15 +71,7 @@ func _parse_interval(raw: String) -> Dictionary:
 
 
 func _format_miles(value: int) -> String:
-	var digits := str(value)
-	var out := ""
-	var count := 0
-	for i in range(digits.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			out = "," + out
-		out = digits[i] + out
-		count += 1
-	return out
+	return DueMath.format_miles(value)
 
 
 func _build_rows() -> void:
@@ -118,14 +115,15 @@ func _make_empty_row() -> Control:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
 	wrap.add_child(panel)
+	PanScroll.wire(wrap, func() -> void: pass)
 	return wrap
 
 
 func _make_row(job: Dictionary, index: int, count: int) -> Control:
-	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, TAP_MIN)
+	var wrap := VBoxContainer.new()
 	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wrap.clip_contents = true
+	wrap.add_theme_constant_override("separation", 0)
+	wrap.clip_contents = false
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_SURFACE
 	if index == 0:
@@ -136,39 +134,34 @@ func _make_row(job: Dictionary, index: int, count: int) -> Control:
 		style.corner_radius_bottom_right = 12
 	style.content_margin_left = 12
 	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
 	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.custom_minimum_size = Vector2(0, ROW_MIN)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", style)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
-	var receipt := str(job.get("receipt", "")).strip_edges()
-	var thumb := PhotoService.load_texture(receipt)
-	if thumb != null:
-		var pic := TextureRect.new()
-		pic.custom_minimum_size = Vector2(36, 36)
-		pic.texture = thumb
-		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		hbox.add_child(pic)
+	hbox.add_child(_make_thumb_slot(str(job.get("receipt", "")).strip_edges()))
 	var titles := VBoxContainer.new()
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	titles.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	titles.add_theme_constant_override("separation", 1)
 	var date_label := Label.new()
 	var shown := DueMath.format_display_date(str(job.get("date", "")))
 	date_label.text = shown if shown != "" else str(job.get("date", ""))
 	date_label.add_theme_color_override("font_color", COLOR_PRIMARY)
 	date_label.add_theme_font_size_override("font_size", 17)
+	date_label.clip_text = false
 	var cost_cents := int(job.get("cost_cents", 0))
 	var cost_bit := "—" if cost_cents == 0 else DueMath.format_cents(cost_cents)
 	var sub_label := Label.new()
 	sub_label.text = "%s mi · %s" % [_format_miles(int(job.get("miles", 0))), cost_bit]
-	sub_label.add_theme_color_override("font_color", COLOR_SECONDARY)
+	sub_label.add_theme_color_override("font_color", COLOR_MUTED)
 	sub_label.add_theme_font_size_override("font_size", 13)
+	sub_label.clip_text = false
 	titles.add_child(date_label)
 	titles.add_child(sub_label)
 	hbox.add_child(titles)
@@ -176,18 +169,43 @@ func _make_row(job: Dictionary, index: int, count: int) -> Control:
 	wrap.add_child(panel)
 	if index < count - 1:
 		var line := ColorRect.new()
+		line.custom_minimum_size = Vector2(0, 1)
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		line.color = COLOR_HAIRLINE
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		line.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		line.offset_left = 16
-		line.offset_right = -16
-		line.offset_top = -1
-		line.offset_bottom = 0
 		wrap.add_child(line)
+	PanScroll.wire(wrap, _on_job_tapped.bind(str(job.get("id", ""))))
 	return wrap
 
 
+func _make_thumb_slot(receipt: String) -> Control:
+	var slot := Control.new()
+	slot.custom_minimum_size = Vector2(40, 40)
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var thumb := PhotoService.load_texture(receipt)
+	if thumb == null:
+		return slot
+	var pic := TextureRect.new()
+	pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pic.custom_minimum_size = Vector2(40, 40)
+	pic.texture = thumb
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.clip_contents = true
+	slot.add_child(pic)
+	return slot
+
+
 func _on_log_pressed() -> void:
+	GarageStore.selected_history_id = ""
+	get_tree().change_scene_to_file("res://scenes/service_edit.tscn")
+
+
+func _on_job_tapped(hid: String) -> void:
+	if hid.strip_edges() == "":
+		return
+	GarageStore.selected_history_id = hid
 	get_tree().change_scene_to_file("res://scenes/service_edit.tscn")
 
 
@@ -206,4 +224,21 @@ func _on_save_intervals_pressed() -> void:
 
 
 func _on_delete_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/service_delete_confirm.tscn")
+	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
+	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
+	var label := str(service.get("label", "")).strip_edges()
+	if label == "":
+		label = "this service"
+	ConfirmSheet.present(
+		self,
+		"Delete service?",
+		"This removes %s and its jobs." % label,
+		"Keep",
+		"Delete",
+		_on_delete_confirmed
+	)
+
+
+func _on_delete_confirmed() -> void:
+	GarageStore.delete_selected_service()
+	get_tree().change_scene_to_file("res://scenes/garage.tscn")

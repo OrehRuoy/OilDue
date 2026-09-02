@@ -106,6 +106,15 @@ func _run() -> String:
 	)
 	if fail != "":
 		return fail
+	fail = _expect(DueMath.format_miles(88000) == "88,000", "format miles 88,000")
+	if fail != "":
+		return fail
+	fail = _expect(DueMath.format_miles(0) == "0", "format miles 0")
+	if fail != "":
+		return fail
+	fail = _expect(DueMath.format_miles(1000) == "1,000", "format miles 1,000")
+	if fail != "":
+		return fail
 	return ""
 
 

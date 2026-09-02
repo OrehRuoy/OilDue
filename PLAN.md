@@ -94,10 +94,82 @@ Privacy strings for a future iOS export preset (do not add `NSPhotoLibraryAddUsa
 
 The exported binary must include PhotoPicker PR #105 (Godot 4.6 root VC is nil without it). Icon parked.
 
+## Day 20b
+
+Vehicle-edit hero draws COVER photo; empty state is svc_car in the same box; sheet rows. Night-bay still garage-only.
+
+## Day 21
+
+Garage listing card (photo, huge nickname, miles/due stats, cream Log); vehicle-edit hero name overlay. Unlock is Day 22. Icon parked. Night-bay still garage-only. Cover-crop pan parked.
+
+## Day 22
+
+Unlock screen $2.99 + Restore; extra-car / archive / notify gates; archive hide/unarchive; overlay sheets (miles, photo, confirms); log/history cream CTAs. StoreKit sandbox, PhotoPicker PR #105, killed-app notify = TestFlight. Icon parked. Cover-crop pan parked. Keep 5–21.
+
+## Day 22b
+
+Garage Add-car tile in the 60px strip (even for 1 car); Log Remind me; Add Service template list. Unlock/archive/sheets from 22 stay.
+
+## Day 23
+
+Remind me OFF free when locked; Unlock / vehicle_add / service_add Day-21 look. Add tile caption remains Add. StoreKit/killed-app notify still TestFlight.
+
+## Day 24
+
+Locked Remind me displays off + iOS switch; garage trailing “Add service”; vehicle_add Back → garage; ScrollContainers SHOW_NEVER + swipe pans; add-car / Add Service grouped cards. StoreKit/killed-app notify still TestFlight.
+
+## Day 25
+
+History rows show date/miles/price with no clip; garage Settings gear is alone; listing-card muted Add service / Add another service under cream Log. StoreKit/killed-app notify still TestFlight.
+
+## Day 26
+
+NotifyService date-only, 64 cap, permission on first Remind me ON. StoreKit and PhotoPicker still later. Killed-app fire is TestFlight, not F5.
+
+## Day 27
+
+Purchase.buy/restore wired; editor Pretend unchanged; sandbox buy is TestFlight. PhotoPicker still later. Do not file the listing until a sandbox buy works on device.
+
+## Day 28
+
+PhotoService uses PhotoPicker singleton when present, else FileDialog / iOS stub. Real library/camera is TestFlight. Looks still later.
+
+## Day 29
+
+iOS plugins vendored for StoreKit (Taptico Godot 4.6 layout), Notification Scheduler iOS v5.2 (Godot 4.6 zip; v6.0 is 4.7), and PhotoPicker (PR #105 view controller). Editor stubs unchanged. `min_ios_version` 15.0. Provisioning UUID empty. GHA preflight greps the three plugins only. Sandbox buy + killed-app notify + real camera/library are TestFlight. Looks still later. Do not file the listing with Reminders until a killed-app notification has fired.
+
+## Day 30
+
+Square icon + splash, version 1.0.0, tests out of IPA. One warm theme (CreamButton only primary, no 11 px). Safe area on every screen. Empty first run with Add your car; existing garages untouched; Developer Load demo Civic. notify default false. Status text without paths. History rows unclipped. Nav.go, font, date picker, units, stats, Files picker deferred.
+
+## Day 31
+
+Log date is a tappable field (`Sep 2, 2026`), not a YYYY-MM-DD LineEdit. iOS presents `UIDatePicker` wheels via in-tree DatePicker (PR #105 view controller). Editor/Windows uses a month-grid sheet with Today. Storage stays `YYYY-MM-DD`. Real wheels are TestFlight. Keep 5–30.
+
+## Day 32
+
+History tap opens Edit job on the Log screen. Save rewrites that job; Delete job uses a dim-card confirm. `last_*` / `next_*` recompute from the newest remaining history. Numeric keyboards + notes TextEdit. Units/stats/Files still later. Keep 5–31.
+
+## Day 33
+
+All confirms use dim + `#2A2622` sheet: cream 52px Cancel, red 17px text for Delete / Archive / Replace. Godot AcceptDialog gone. Keep 5–32. Units/stats/Files still later.
+
+## Day 34
+
+Compact garage listing card, aligned history thumbs, forms/unlock/settings void killed, missing glyphs from Lauren zip. Keep 5–33. No feature changes. Units/stats/Files still later.
+
+## Day 35
+
+Selection highlight on Add service (`#3D3832` + cream hairline), Lauren white glyphs, compact log form, centered 428 column on non-garage screens, vehicle-edit hero or small placeholder. Keep 5–34. No feature changes. Units/stats/Files still later.
+
+## Day 36
+
+iOS Files list in `user://` (no FileDialog on phone). First-build check: icon 1024, splash, plugins, Developer hidden. Keep 5–35. No feature changes. Units/stats still later.
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.
 
 ## Deferred
 
-iOS PhotoPicker plugin **binary** (PR #105; GDScript branch is in), local notifications, StoreKit/IAP, GitHub Actions iOS signing. `UIFileSharingEnabled` / Files app later. Export preset later.
+Killed-app local notification fire, StoreKit sandbox buy, GitHub Actions iOS signing / xcodebuild (profile UUID still empty). Looks later (Nav.go, Inter font, units, stats). Real date wheels are TestFlight.

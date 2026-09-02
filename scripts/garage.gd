@@ -2,15 +2,17 @@ extends Control
 
 const DueMath = preload("res://scripts/due_math.gd")
 const ServiceIcons = preload("res://scripts/service_icons.gd")
+const PanScroll = preload("res://scripts/pan_scroll.gd")
 const TAP_MIN := 44.0
 const ROW_MIN := 56.0
 const TILE := 60.0
-const CONTENT_PAD := 16
-const COLOR_PRIMARY := Color("#F2F2F7")
+const COLOR_PRIMARY := Color("#F4EFE6")
 const COLOR_SURFACE := Color("#2A2622")
 const COLOR_HAIRLINE := Color("#3D3832")
-const COLOR_SECONDARY := Color("#8E8E93")
+const COLOR_SECONDARY := Color("#9A9388")
+const COLOR_MUTED := Color("#9A9388")
 const COLOR_ACCENT := Color("#FF453A")
+const COLOR_SOON := Color("#FF9F0A")
 const CHEVRON := preload("res://assets/icons/chevron_right.png")
 
 const STATUS_ORDER := {
@@ -28,89 +30,114 @@ const STATUS_LABELS := {
 const STATUS_COLOR := {
 	"Overdue": Color("#FF453A"),
 	"Due soon": Color("#FF9F0A"),
-	"OK": Color("#30D158"),
+	"OK": Color("#9A9388"),
 }
 
-@onready var _safe_area: MarginContainer = %SafeArea
-@onready var _photo_slot: Panel = %PhotoSlot
-@onready var _car_name: Button = %CarName
-@onready var _car_switch: OptionButton = %CarSwitch
 @onready var _car_strip: ScrollContainer = %CarStrip
 @onready var _car_tiles: HBoxContainer = %CarTiles
-@onready var _odometer: Label = %Odometer
-@onready var _photo_rect: TextureRect = %PhotoRect
-@onready var _summary: Label = %Summary
+@onready var _card_photo: Panel = %CardPhoto
+@onready var _card_hole: Panel = %CardHole
+@onready var _card_nick: Button = %CardNick
+@onready var _due_chip: Label = %DueChip
+@onready var _card_spec: Label = %CardSpec
+@onready var _miles_val: Button = %MilesVal
+@onready var _due_cap: Label = %DueCap
+@onready var _due_val: Label = %DueVal
+@onready var _log_button: Button = %LogButton
+@onready var _add_service: Button = %AddService
 @onready var _service_rows: VBoxContainer = %ServiceRows
+@onready var _listing_card: Control = %ListingCard
+@onready var _welcome_card: Control = %WelcomeCard
+@onready var _service_scroll: Control = %ServiceScroll
 @onready var _miles_popup: ColorRect = %MilesPopup
 @onready var _miles_edit: LineEdit = %MilesEdit
 
 var _miles: int = 0
+var _focus_service_id := ""
 
 
 func _ready() -> void:
-	_car_switch.visible = false
 	_refresh_from_store()
 	_miles_popup.visible = false
-	%UpdateMiles.pressed.connect(_on_update_miles_pressed)
 	%Gear.pressed.connect(_on_gear_pressed)
-	%Add.pressed.connect(_on_add_pressed)
+	%AddService.pressed.connect(_on_add_pressed)
 	%MilesCancel.pressed.connect(_on_miles_cancel)
 	%MilesSet.pressed.connect(_on_miles_set)
+	_miles_popup.gui_input.connect(_on_miles_dim_gui_input)
 	_miles_edit.text_submitted.connect(func(_t: String) -> void: _on_miles_set())
-	_car_name.pressed.connect(_open_vehicle_edit)
-	%PhotoSlot.gui_input.connect(_on_photo_gui_input)
-	get_viewport().size_changed.connect(_apply_safe_area)
-	_apply_safe_area()
+	_card_nick.pressed.connect(_open_vehicle_edit)
+	_card_photo.gui_input.connect(_on_photo_gui_input)
+	_miles_val.pressed.connect(_on_update_miles_pressed)
+	_log_button.pressed.connect(_on_log_pressed)
+	%WelcomeAdd.pressed.connect(_on_welcome_add_pressed)
+	NotifyService.reschedule()
 
 
 func _current_display_vehicle() -> Dictionary:
 	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
-	if vehicle.is_empty():
+	if vehicle.is_empty() or bool(vehicle.get("archived", false)):
 		vehicle = GarageStore.primary_vehicle()
 		GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
 	return vehicle
 
 
 func _refresh_from_store() -> void:
+	if GarageStore.vehicles_list().is_empty():
+		_welcome_card.visible = true
+		_listing_card.visible = false
+		_service_scroll.visible = false
+		_fill_header("")
+		return
+	_welcome_card.visible = false
+	_listing_card.visible = true
+	_service_scroll.visible = true
 	var vehicle := _current_display_vehicle()
-	_car_name.text = _vehicle_display_name(vehicle)
 	_fill_header(str(vehicle.get("id", "")))
 	_miles = int(vehicle.get("odometer", 0))
-	_refresh_odometer()
-	_apply_header_photo(str(vehicle.get("photo", "")))
+	_fill_card(vehicle)
 	_build_rows(vehicle)
 
 
-func _apply_header_photo(filename: String) -> void:
+func _fill_card_photo(filename: String) -> void:
+	for child in _card_hole.get_children():
+		_card_hole.remove_child(child)
+		child.queue_free()
 	var tex := PhotoService.load_texture(filename)
 	if tex != null:
-		_photo_rect.texture = tex
-		_photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		_photo_rect.modulate = Color.WHITE
-	else:
-		_photo_rect.texture = ServiceIcons.CAR
-		_photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		_photo_rect.modulate = Color.WHITE
+		var pic := TextureRect.new()
+		pic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.texture = tex
+		_card_hole.add_child(pic)
+		return
+	var wrap := CenterContainer.new()
+	wrap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var glyph := TextureRect.new()
+	glyph.texture = ServiceIcons.CAR
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	glyph.custom_minimum_size = Vector2(40, 40)
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(glyph)
+	_card_hole.add_child(wrap)
 
 
 func _fill_header(current_id: String) -> void:
-	_car_switch.visible = false
 	var vehicles := GarageStore.vehicles_list()
-	var multi := vehicles.size() >= 2
-	_car_strip.visible = multi
-	_photo_slot.visible = not multi
-	_car_name.visible = not multi
+	_car_strip.visible = true
 	for child in _car_tiles.get_children():
 		_car_tiles.remove_child(child)
 		child.queue_free()
-	if not multi:
-		return
 	for item in vehicles:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		var vehicle: Dictionary = item
 		var vid := str(vehicle.get("id", ""))
 		_car_tiles.add_child(_make_tile(vehicle, vid == current_id))
+	_car_tiles.add_child(_make_add_tile())
 
 
 func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
@@ -123,7 +150,7 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	wrap.add_theme_stylebox_override("hover", empty)
 	wrap.add_theme_stylebox_override("pressed", empty)
 	wrap.add_theme_stylebox_override("focus", empty)
-	wrap.pressed.connect(_on_tile_pressed.bind(vid))
+	PanScroll.wire(wrap, _on_tile_pressed.bind(vid))
 
 	var col := VBoxContainer.new()
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -189,13 +216,100 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	name_label.clip_text = true
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_SECONDARY)
-	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.custom_minimum_size = Vector2(TILE, 0)
 
 	col.add_child(panel)
 	col.add_child(name_label)
 	wrap.add_child(col)
 	return wrap
+
+
+func _make_add_tile() -> Control:
+	var wrap := Button.new()
+	wrap.custom_minimum_size = Vector2(TILE, 82)
+	wrap.flat = true
+	var empty := StyleBoxEmpty.new()
+	wrap.add_theme_stylebox_override("normal", empty)
+	wrap.add_theme_stylebox_override("hover", empty)
+	wrap.add_theme_stylebox_override("pressed", empty)
+	wrap.add_theme_stylebox_override("focus", empty)
+	PanScroll.wire(wrap, _on_add_car_tile_pressed)
+
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 4)
+	col.alignment = BoxContainer.ALIGNMENT_BEGIN
+
+	var panel := Panel.new()
+	panel.custom_minimum_size = Vector2(TILE, TILE)
+	panel.clip_contents = true
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_SURFACE
+	style.set_corner_radius_all(12)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = COLOR_HAIRLINE
+	panel.add_theme_stylebox_override("panel", style)
+
+	var pad := MarginContainer.new()
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_theme_constant_override("margin_left", 4)
+	pad.add_theme_constant_override("margin_top", 4)
+	pad.add_theme_constant_override("margin_right", 4)
+	pad.add_theme_constant_override("margin_bottom", 4)
+
+	var hole := Panel.new()
+	hole.clip_contents = true
+	hole.clip_children = Control.CLIP_CHILDREN_AND_DRAW
+	hole.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hole_style := StyleBoxFlat.new()
+	hole_style.bg_color = COLOR_SURFACE
+	hole_style.set_corner_radius_all(8)
+	hole.add_theme_stylebox_override("panel", hole_style)
+
+	var plus := Label.new()
+	plus.text = "+"
+	plus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	plus.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	plus.add_theme_color_override("font_color", COLOR_PRIMARY)
+	plus.add_theme_font_size_override("font_size", 28)
+	plus.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hole.add_child(plus)
+	pad.add_child(hole)
+	panel.add_child(pad)
+
+	var name_label := Label.new()
+	name_label.text = "Add"
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.clip_text = true
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.add_theme_color_override("font_color", COLOR_MUTED)
+	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.custom_minimum_size = Vector2(TILE, 0)
+
+	col.add_child(panel)
+	col.add_child(name_label)
+	wrap.add_child(col)
+	return wrap
+
+
+func _on_add_car_tile_pressed() -> void:
+	if GarageStore.vehicles_list().is_empty() or GarageStore.is_unlocked():
+		get_tree().change_scene_to_file("res://scenes/vehicle_add.tscn")
+		return
+	GarageStore.unlock_back_scene = "res://scenes/garage.tscn"
+	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
+
+
+func _on_welcome_add_pressed() -> void:
+	_on_add_car_tile_pressed()
 
 
 func _on_tile_pressed(vehicle_id: String) -> void:
@@ -217,47 +331,70 @@ func _vehicle_display_name(vehicle: Dictionary) -> String:
 	]).strip_edges()
 
 
-func _apply_safe_area() -> void:
-	var win := DisplayServer.window_get_size()
-	if win.x <= 0 or win.y <= 0:
+func _fill_card(vehicle: Dictionary) -> void:
+	_fill_card_photo(str(vehicle.get("photo", "")))
+	_card_nick.text = _vehicle_display_name(vehicle)
+	_card_spec.text = ("%s %s %s" % [
+		vehicle.get("year", ""),
+		vehicle.get("make", ""),
+		vehicle.get("model", ""),
+	]).strip_edges()
+	_miles_val.text = _format_miles(_miles)
+	var rows := _collect_rows(vehicle)
+	_add_service.text = "Add another service" if rows.size() >= 1 else "Add service"
+	if rows.is_empty():
+		_focus_service_id = ""
+		_due_cap.text = "OIL"
+		_due_val.text = "—"
+		_style_chip("OK")
+		_log_button.visible = false
 		return
-	var safe := DisplayServer.get_display_safe_area()
-	var vp := get_viewport_rect().size
-	var sx := vp.x / float(win.x)
-	var sy := vp.y / float(win.y)
-	_safe_area.add_theme_constant_override(
-		"margin_left", maxi(CONTENT_PAD, int(round(safe.position.x * sx)))
-	)
-	_safe_area.add_theme_constant_override(
-		"margin_top", maxi(CONTENT_PAD, int(round(safe.position.y * sy)))
-	)
-	_safe_area.add_theme_constant_override(
-		"margin_right", maxi(CONTENT_PAD, int(round((win.x - safe.end.x) * sx)))
-	)
-	_safe_area.add_theme_constant_override(
-		"margin_bottom", maxi(CONTENT_PAD, int(round((win.y - safe.end.y) * sy)))
-	)
+	var top: Dictionary = rows[0]
+	_focus_service_id = str(top.get("service_id", ""))
+	var type_id := str(top.get("type_id", ""))
+	if type_id == "oil_change":
+		_due_cap.text = "OIL"
+		_log_button.text = "Log oil"
+	else:
+		var label := str(top.get("name", "")).strip_edges().to_upper()
+		_due_cap.text = label if label != "" else "DUE"
+		_log_button.text = "Log this service"
+	var shown := DueMath.format_display_date(str(top.get("next_date", "")))
+	_due_val.text = shown if shown != "" else "—"
+	_style_chip(str(top.get("status", "OK")))
+	_log_button.visible = _focus_service_id != ""
 
 
-func _refresh_odometer() -> void:
-	_odometer.text = "%s mi" % _format_miles(_miles)
+func _style_chip(status: String) -> void:
+	_due_chip.text = status
+	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	if status == "Overdue":
+		style.bg_color = COLOR_ACCENT
+		_due_chip.add_theme_color_override("font_color", COLOR_PRIMARY)
+	elif status == "Due soon":
+		style.bg_color = COLOR_SURFACE
+		style.border_width_left = 1
+		style.border_width_top = 1
+		style.border_width_right = 1
+		style.border_width_bottom = 1
+		style.border_color = COLOR_SOON
+		_due_chip.add_theme_color_override("font_color", COLOR_SOON)
+	else:
+		style.bg_color = COLOR_SURFACE
+		_due_chip.add_theme_color_override("font_color", COLOR_MUTED)
+	_due_chip.add_theme_stylebox_override("normal", style)
 
 
 func _format_miles(value: int) -> String:
-	var digits := str(value)
-	var out := ""
-	var count := 0
-	for i in range(digits.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			out = "," + out
-		out = digits[i] + out
-		count += 1
-	return out
+	return DueMath.format_miles(value)
 
 
-func _build_rows(vehicle: Dictionary) -> void:
-	for child in _service_rows.get_children():
-		child.queue_free()
+func _collect_rows(vehicle: Dictionary) -> Array:
 	var today := GarageStore.today_ymd()
 	var odometer := int(vehicle.get("odometer", 0))
 	var vehicle_id := str(vehicle.get("id", ""))
@@ -276,32 +413,18 @@ func _build_rows(vehicle: Dictionary) -> void:
 			"next_miles": _as_int(service.get("next_miles"), 0),
 		})
 	rows.sort_custom(_status_sort)
-	_refresh_summary(rows)
+	return rows
+
+
+func _build_rows(vehicle: Dictionary) -> void:
+	for child in _service_rows.get_children():
+		child.queue_free()
+	var rows := _collect_rows(vehicle)
 	var count := rows.size()
 	var i := 0
 	for row in rows:
 		_service_rows.add_child(_make_row(row, i, count))
 		i += 1
-
-
-func _refresh_summary(rows: Array) -> void:
-	var overdue := 0
-	var soon := 0
-	for row in rows:
-		var status := str(row.get("status", ""))
-		if status == "Overdue":
-			overdue += 1
-		elif status == "Due soon":
-			soon += 1
-	if overdue >= 1:
-		_summary.text = "1 overdue" if overdue == 1 else "%d overdue" % overdue
-		_summary.add_theme_color_override("font_color", STATUS_COLOR["Overdue"])
-	elif soon >= 1:
-		_summary.text = "1 due soon" if soon == 1 else "%d due soon" % soon
-		_summary.add_theme_color_override("font_color", STATUS_COLOR["Due soon"])
-	else:
-		_summary.text = "All caught up"
-		_summary.add_theme_color_override("font_color", STATUS_COLOR["OK"])
 
 
 func _due_subtitle(next_date: String, next_miles: int) -> String:
@@ -362,7 +485,7 @@ func _make_row(row: Dictionary, index: int, count: int) -> Control:
 
 	var btn := Button.new()
 	btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	btn.pressed.connect(_on_service_row_pressed.bind(vehicle_id, service_id))
+	btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := _row_style(index, count)
 	btn.add_theme_stylebox_override("normal", style)
 	btn.add_theme_stylebox_override("hover", style)
@@ -440,6 +563,7 @@ func _make_row(row: Dictionary, index: int, count: int) -> Control:
 		line.offset_top = -1
 		line.offset_bottom = 0
 		wrap.add_child(line)
+	PanScroll.wire(wrap, _on_service_row_pressed.bind(vehicle_id, service_id))
 	return wrap
 
 
@@ -465,6 +589,17 @@ func _on_miles_cancel() -> void:
 	_miles_popup.visible = false
 
 
+func _on_miles_dim_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		if mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
+			_on_miles_cancel()
+	elif event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_on_miles_cancel()
+
+
 func _on_miles_set() -> void:
 	var raw := _miles_edit.text.strip_edges().replace(",", "")
 	if raw.is_valid_int():
@@ -473,6 +608,15 @@ func _on_miles_set() -> void:
 			GarageStore.set_odometer(parsed)
 			_refresh_from_store()
 	_miles_popup.visible = false
+
+
+func _on_log_pressed() -> void:
+	if _focus_service_id == "":
+		return
+	var vehicle := _current_display_vehicle()
+	GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
+	GarageStore.selected_service_id = _focus_service_id
+	get_tree().change_scene_to_file("res://scenes/service_edit.tscn")
 
 
 func _on_add_pressed() -> void:

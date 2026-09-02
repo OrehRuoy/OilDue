@@ -11,14 +11,19 @@ config_version=5
 [application]
 
 config/name="Oil Due"
+config/version="1.0.0"
 run/main_scene="res://scenes/garage.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
+boot_splash/bg_color=Color(0.101961, 0.090196, 0.078431, 1)
+boot_splash/stretch_mode=0
+boot_splash/image="res://assets/splash.png"
 config/icon="res://assets/icon_1024.png"
 
 [autoload]
 
 GarageStore="*res://scripts/garage_store.gd"
 PhotoService="*res://scripts/photo_service.gd"
+DateService="*res://scripts/date_service.gd"
 NotifyService="*res://scripts/notify_service.gd"
 Purchase="*res://scripts/purchase.gd"
 AppSettings="*res://scripts/app_settings.gd"
@@ -30,6 +35,10 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=6
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/NotificationSchedulerPlugin/plugin.cfg")
 
 [gui]
 

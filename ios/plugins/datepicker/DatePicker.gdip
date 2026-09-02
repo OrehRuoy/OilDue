@@ -1,0 +1,15 @@
+[config]
+name="DatePicker"
+binary="DatePicker.xcframework"
+initialization="godot_datepicker_init"
+deinitialization="godot_datepicker_deinit"
+
+[dependencies]
+linked=[]
+embedded=[]
+system=["Foundation.framework", "UIKit.framework"]
+capabilities=[]
+files=[]
+linker_flags=["-ObjC"]
+
+[plist]

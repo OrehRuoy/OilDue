@@ -9,6 +9,12 @@ const SPARK := preload("res://assets/glyphs/svc_spark.png")
 const BATTERY := preload("res://assets/glyphs/svc_battery.png")
 const WIPER := preload("res://assets/glyphs/svc_wiper.png")
 const FILTER := preload("res://assets/glyphs/svc_filter.png")
+const INSPECT := preload("res://assets/glyphs/svc_inspect.png")
+const REGISTRATION := preload("res://assets/glyphs/svc_registration.png")
+const BRAKE_FLUID := preload("res://assets/glyphs/svc_brake_fluid.png")
+const TRANS_FLUID := preload("res://assets/glyphs/svc_trans_fluid.png")
+const FUEL_FILTER := preload("res://assets/glyphs/svc_fuel_filter.png")
+const BELT := preload("res://assets/glyphs/svc_belt.png")
 const WRENCH := preload("res://assets/glyphs/svc_wrench.png")
 const CAR := preload("res://assets/glyphs/svc_car.png")
 
@@ -31,5 +37,17 @@ static func texture_for(type_id: String) -> Texture2D:
 			return WIPER
 		"air_filter", "cabin_filter":
 			return FILTER
+		"inspection":
+			return INSPECT
+		"registration":
+			return REGISTRATION
+		"brake_fluid":
+			return BRAKE_FLUID
+		"trans_fluid":
+			return TRANS_FLUID
+		"fuel_filter":
+			return FUEL_FILTER
+		"serpentine", "timing_belt":
+			return BELT
 		_:
 			return WRENCH

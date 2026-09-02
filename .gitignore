@@ -3,11 +3,14 @@
 
 # Export output (do not ignore export_presets.cfg when it appears later)
 exports/
+build/
+tmp-plugins/
 *.ipa
 *.apk
 *.aab
 *.pck
 *.exe
+*.xcframework
 
 # Godot Mono leftovers (this project is GDScript only)
 .mono/

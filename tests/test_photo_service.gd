@@ -52,6 +52,10 @@ func _run() -> String:
 	if fail != "":
 		_cleanup()
 		return fail
+	fail = _expect(not PhotoService.ios_photopicker(), "ios_photopicker false in editor")
+	if fail != "":
+		_cleanup()
+		return fail
 	_cleanup()
 	return ""
 

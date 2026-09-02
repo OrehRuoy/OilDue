@@ -1,33 +1,52 @@
 extends Control
 
 const DueMath = preload("res://scripts/due_math.gd")
+const IosSwitch = preload("res://scripts/ios_switch.gd")
+const PanScroll = preload("res://scripts/pan_scroll.gd")
+const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 
 @onready var _title: Label = %Title
-@onready var _date_edit: LineEdit = %DateEdit
+@onready var _date_field: Button = %DateField
 @onready var _miles_edit: LineEdit = %MilesEdit
 @onready var _cost_edit: LineEdit = %CostEdit
-@onready var _notes_edit: LineEdit = %NotesEdit
+@onready var _notes_edit: TextEdit = %NotesEdit
 @onready var _error: Label = %ErrorLabel
 @onready var _receipt_preview: TextureRect = %ReceiptPreview
+@onready var _notify: IosSwitch = %NotifySwitch
+@onready var _delete_btn: Button = %DeleteJobButton
+@onready var _kb_pad: Control = %KeyboardPad
+
+var _ymd := ""
+var _editing := false
 
 
 func _ready() -> void:
 	_ensure_selection()
-	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
-	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
-	var label := str(service.get("label", ""))
-	_title.text = label if label != "" else "Log service"
-	_date_edit.text = GarageStore.today_ymd()
-	_miles_edit.text = str(int(vehicle.get("odometer", 0)))
-	_cost_edit.text = ""
-	_notes_edit.text = ""
+	_style_date_field()
+	_style_notes_field()
+	_fill_form()
 	_error.text = ""
-	_receipt_preview.texture = null
+	set_process(DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD))
 	%LogButton.pressed.connect(_on_log_pressed)
 	%Back.pressed.connect(_on_back_pressed)
 	%ReceiptButton.pressed.connect(_on_receipt_pressed)
+	_miles_edit.focus_exited.connect(_on_miles_focus_exited)
+	_delete_btn.pressed.connect(_on_delete_pressed)
+	PanScroll.wire(_date_field, _on_date_pressed)
+	PanScroll.wire_fields($Margin/PageHost)
+	PanScroll.wire($Margin/PageHost/Column/FormGroup, func() -> void: pass)
+	_setup_notify()
 	PhotoService.picked.connect(_on_photo_picked)
 	PhotoService.failed.connect(_on_photo_failed)
+	DateService.picked.connect(_on_date_picked)
+	DateService.cancelled.connect(_on_date_cancelled)
+
+
+func _process(_delta: float) -> void:
+	var kb := DisplayServer.virtual_keyboard_get_height()
+	if kb < 0:
+		kb = 0
+	_kb_pad.custom_minimum_size.y = kb
 
 
 func _exit_tree() -> void:
@@ -35,10 +54,15 @@ func _exit_tree() -> void:
 		PhotoService.picked.disconnect(_on_photo_picked)
 	if PhotoService.failed.is_connected(_on_photo_failed):
 		PhotoService.failed.disconnect(_on_photo_failed)
+	if DateService.picked.is_connected(_on_date_picked):
+		DateService.picked.disconnect(_on_date_picked)
+	if DateService.cancelled.is_connected(_on_date_cancelled):
+		DateService.cancelled.disconnect(_on_date_cancelled)
 
 
 func _on_back_pressed() -> void:
 	GarageStore.pending_receipt_src = ""
+	GarageStore.selected_history_id = ""
 	get_tree().change_scene_to_file("res://scenes/service_list.tscn")
 
 
@@ -52,18 +76,119 @@ func _ensure_selection() -> void:
 		GarageStore.selected_service_id = str(services[0].get("id", ""))
 
 
+func _fill_form() -> void:
+	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
+	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
+	var job := GarageStore.history_job(GarageStore.selected_history_id)
+	_editing = not job.is_empty()
+	if _editing:
+		_title.text = "Edit job"
+		%LogButton.text = "Save"
+		_delete_btn.visible = true
+		_ymd = str(job.get("date", "")).strip_edges()
+		if DueMath.parse_ymd(_ymd).is_empty():
+			_ymd = GarageStore.today_ymd()
+		_miles_edit.text = DueMath.format_miles(int(job.get("miles", 0)))
+		_cost_edit.text = _cents_to_dollars_field(int(job.get("cost_cents", 0)))
+		_notes_edit.text = str(job.get("notes", ""))
+		var receipt := str(job.get("receipt", "")).strip_edges()
+		_set_receipt_preview(PhotoService.load_texture(receipt))
+	else:
+		GarageStore.selected_history_id = ""
+		var label := str(service.get("label", ""))
+		_title.text = label if label != "" else "Log service"
+		%LogButton.text = "Log this service"
+		_delete_btn.visible = false
+		_ymd = GarageStore.today_ymd()
+		_miles_edit.text = DueMath.format_miles(int(vehicle.get("odometer", 0)))
+		_cost_edit.text = ""
+		_notes_edit.text = ""
+		_set_receipt_preview(null)
+	_refresh_date_label()
+
+
+func _style_date_field() -> void:
+	_date_field.add_theme_color_override("font_color", Color("#F2F2F7"))
+	_date_field.add_theme_color_override("font_hover_color", Color("#F2F2F7"))
+	_date_field.add_theme_color_override("font_pressed_color", Color("#F2F2F7"))
+	_date_field.add_theme_font_size_override("font_size", 17)
+	_date_field.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+
+
+func _style_notes_field() -> void:
+	var empty := StyleBoxEmpty.new()
+	_notes_edit.add_theme_stylebox_override("normal", empty)
+	_notes_edit.add_theme_stylebox_override("focus", empty)
+	_notes_edit.add_theme_color_override("font_color", Color("#F2F2F7"))
+	_notes_edit.add_theme_font_size_override("font_size", 17)
+
+
+func _on_date_pressed() -> void:
+	DateService.pick(_ymd)
+
+
+func _on_date_picked(ymd: String) -> void:
+	if DueMath.parse_ymd(ymd).is_empty():
+		return
+	_ymd = ymd
+	_refresh_date_label()
+
+
+func _on_date_cancelled() -> void:
+	_ymd = DateService.last_ymd
+	_refresh_date_label()
+
+
+func _refresh_date_label() -> void:
+	var shown := DueMath.format_display_date(_ymd)
+	_date_field.text = shown if shown != "" else _ymd
+
+
 func _on_receipt_pressed() -> void:
 	_error.text = ""
 	PhotoService.pick_image()
+
+
+func _on_miles_focus_exited() -> void:
+	var raw := _miles_edit.text.strip_edges().replace(",", "")
+	if raw.is_valid_int():
+		_miles_edit.text = DueMath.format_miles(int(raw))
+
+
+func _setup_notify() -> void:
+	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
+	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
+	if Purchase.is_unlocked():
+		_notify.on = bool(service.get("notify", false))
+	else:
+		_notify.on = false
+	if not _notify.toggled.is_connected(_on_notify_toggled):
+		_notify.toggled.connect(_on_notify_toggled)
+
+
+func _on_notify_toggled(want_on: bool) -> void:
+	if Purchase.is_unlocked():
+		_notify.on = want_on
+		GarageStore.set_service_notify(want_on)
+		NotifyService.reschedule(want_on)
+		return
+	if not want_on:
+		_notify.on = false
+		GarageStore.set_service_notify(false)
+		NotifyService.reschedule()
+		return
+	_notify.on = false
+	GarageStore.unlock_back_scene = "res://scenes/service_edit.tscn"
+	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
 
 
 func _on_photo_picked(src_path: String) -> void:
 	GarageStore.pending_receipt_src = src_path
 	var img := Image.load_from_file(src_path)
 	if img == null or img.is_empty():
-		_receipt_preview.texture = null
+		_set_receipt_preview(null)
 		return
-	_receipt_preview.texture = ImageTexture.create_from_image(img)
+	_set_receipt_preview(ImageTexture.create_from_image(img))
 
 
 func _on_photo_failed(_message: String) -> void:
@@ -72,9 +197,9 @@ func _on_photo_failed(_message: String) -> void:
 
 func _on_log_pressed() -> void:
 	_error.text = ""
-	var date := _date_edit.text.strip_edges()
+	var date := _ymd.strip_edges()
 	if DueMath.parse_ymd(date).is_empty():
-		_error.text = "Enter a real date as YYYY-MM-DD."
+		_error.text = "Pick a date."
 		return
 	var miles_raw := _miles_edit.text.strip_edges().replace(",", "")
 	if not miles_raw.is_valid_int():
@@ -88,10 +213,49 @@ func _on_log_pressed() -> void:
 	if not bool(cost["ok"]):
 		_error.text = "Enter cost as dollars, or leave blank."
 		return
-	if not GarageStore.log_service(date, miles, int(cost["cents"]), _notes_edit.text.strip_edges()):
+	var notes := _notes_edit.text.strip_edges()
+	var ok := false
+	if _editing:
+		ok = GarageStore.update_history(
+			GarageStore.selected_history_id, date, miles, int(cost["cents"]), notes
+		)
+	else:
+		ok = GarageStore.log_service(date, miles, int(cost["cents"]), notes)
+	if not ok:
 		_error.text = "Could not save this service."
 		return
+	GarageStore.selected_history_id = ""
 	get_tree().change_scene_to_file("res://scenes/service_list.tscn")
+
+
+func _on_delete_pressed() -> void:
+	ConfirmSheet.present(self, "Delete this job?", "", "Keep", "Delete", _on_delete_confirmed)
+
+
+func _on_delete_confirmed() -> void:
+	if not _editing:
+		return
+	if not GarageStore.delete_history(GarageStore.selected_history_id):
+		_error.text = "Could not delete this job."
+		return
+	GarageStore.pending_receipt_src = ""
+	GarageStore.selected_history_id = ""
+	get_tree().change_scene_to_file("res://scenes/service_list.tscn")
+
+
+func _set_receipt_preview(tex: Texture2D) -> void:
+	_receipt_preview.texture = tex
+	_receipt_preview.visible = tex != null
+
+
+func _cents_to_dollars_field(cents: int) -> String:
+	if cents <= 0:
+		return ""
+	var dollars := cents / 100
+	var rem := cents % 100
+	if rem == 0:
+		return str(dollars)
+	return "%d.%02d" % [dollars, rem]
 
 
 func _dollars_to_cents(raw: String) -> Dictionary:

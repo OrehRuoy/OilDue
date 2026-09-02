@@ -1,7 +1,10 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/unlock.gd" id="1_unlock"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="2_back"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="3_safe"]
+[ext_resource type="Texture2D" path="res://assets/glyphs/svc_car.png" id="4_car"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="5_page"]
 
 [node name="Unlock" type="Control"]
 layout_mode = 3
@@ -33,64 +36,196 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("3_safe")
 
-[node name="Column" type="VBoxContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 20
+size_flags_vertical = 3
+script = ExtResource("5_page")
 
-[node name="Back" type="Button" parent="Margin/Column"]
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Back" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("2_back")
 expand_icon = true
 
-[node name="Title" type="Label" parent="Margin/Column"]
+[node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "Unlock"
+theme_type_variation = &"ScreenTitle"
+text = "Unlock Oil Due"
 
-[node name="GroupCopy" type="PanelContainer" parent="Margin/Column"]
+[node name="Glyph" type="TextureRect" parent="Margin/PageHost/Column"]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("4_car")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="CopyCol" type="VBoxContainer" parent="Margin/Column/GroupCopy"]
+[node name="PerkCard" type="PanelContainer" parent="Margin/PageHost/Column"]
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="PerkPad" type="MarginContainer" parent="Margin/PageHost/Column/PerkCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 12
+
+[node name="PerkCol" type="VBoxContainer" parent="Margin/PageHost/Column/PerkCard/PerkPad"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Row1" type="HBoxContainer" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Line1" type="Label" parent="Margin/Column/GroupCopy/CopyCol"]
+[node name="Tick1" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row1"]
 layout_mode = 2
-autowrap_mode = 3
-text = "One car is free forever."
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.929412, 0.894118, 0.831373, 1)
+theme_override_font_sizes/font_size = 17
+text = "✓"
+vertical_alignment = 1
 
-[node name="Line2" type="Label" parent="Margin/Column/GroupCopy/CopyCol"]
+[node name="Line1" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row1"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
+theme_override_font_sizes/font_size = 17
 autowrap_mode = 3
-text = "Unlock extra cars and date reminders for $2.99 once."
+text = "Extra vehicles"
+vertical_alignment = 1
 
-[node name="Line3" type="Label" parent="Margin/Column/GroupCopy/CopyCol"]
+[node name="Hair1" type="ColorRect" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="Row2" type="HBoxContainer" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Tick2" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row2"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.929412, 0.894118, 0.831373, 1)
+theme_override_font_sizes/font_size = 17
+text = "✓"
+vertical_alignment = 1
+
+[node name="Line2" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row2"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
+text = "Date reminders on this iPhone"
+vertical_alignment = 1
+
+[node name="Hair2" type="ColorRect" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="Row3" type="HBoxContainer" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Tick3" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row3"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.929412, 0.894118, 0.831373, 1)
+theme_override_font_sizes/font_size = 17
+text = "✓"
+vertical_alignment = 1
+
+[node name="Line3" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row3"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
+text = "Archive a sold car"
+vertical_alignment = 1
+
+[node name="Hair3" type="ColorRect" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="Row4" type="HBoxContainer" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Tick4" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row4"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.929412, 0.894118, 0.831373, 1)
+theme_override_font_sizes/font_size = 17
+text = "✓"
+vertical_alignment = 1
+
+[node name="Line4" type="Label" parent="Margin/PageHost/Column/PerkCard/PerkPad/PerkCol/Row4"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
+theme_override_font_sizes/font_size = 17
 autowrap_mode = 3
 text = "Your log stays either way."
+vertical_alignment = 1
 
-[node name="Line4" type="Label" parent="Margin/Column/GroupCopy/CopyCol"]
-layout_mode = 2
-autowrap_mode = 3
-text = "Not a subscription."
-
-[node name="StatusLabel" type="Label" parent="Margin/Column/GroupCopy/CopyCol"]
+[node name="StatusLabel" type="Label" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.784314, 0.760784, 0.721569, 1)
 autowrap_mode = 3
 
-[node name="Spacer" type="Control" parent="Margin/Column"]
+[node name="Price" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
-size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 28
+text = "$2.99"
+horizontal_alignment = 1
 
-[node name="RestoreButton" type="Button" parent="Margin/Column"]
+[node name="BuyButton" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
-text = "Restore purchases"
+theme_type_variation = &"CreamButton"
+text = "Unlock Oil Due — $2.99"
+
+[node name="RestoreButton" type="Button" parent="Margin/PageHost/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.784314, 0.760784, 0.721569, 1)
+theme_override_colors/font_hover_color = Color(0.784314, 0.760784, 0.721569, 1)
+theme_override_colors/font_pressed_color = Color(0.784314, 0.760784, 0.721569, 1)
+theme_override_font_sizes/font_size = 17
+text = "Restore"
+
+[node name="FinePrint" type="Label" parent="Margin/PageHost/Column"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+text = "One-time. No subscription."
+horizontal_alignment = 1
+autowrap_mode = 3

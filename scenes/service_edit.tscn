@@ -1,7 +1,17 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/service_edit.gd" id="1_edit"]
 [ext_resource type="Texture2D" path="res://assets/icons/back.png" id="2_back"]
+[ext_resource type="Script" path="res://scripts/ios_switch.gd" id="3_switch"]
+[ext_resource type="Script" path="res://scripts/safe_area.gd" id="4_safe"]
+[ext_resource type="Texture2D" path="res://assets/icons/chevron_right.png" id="5_chevron"]
+[ext_resource type="Script" path="res://scripts/page_column.gd" id="6_page"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_field"]
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
 
 [node name="ServiceEdit" type="Control"]
 layout_mode = 3
@@ -33,104 +43,277 @@ theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
+script = ExtResource("4_safe")
 
-[node name="Column" type="VBoxContainer" parent="Margin"]
+[node name="PageHost" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("6_page")
+
+[node name="Column" type="VBoxContainer" parent="Margin/PageHost"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Back" type="Button" parent="Margin/Column"]
+[node name="Back" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"NavBack"
 text = "Back"
 icon = ExtResource("2_back")
 expand_icon = true
 
-[node name="Title" type="Label" parent="Margin/Column"]
+[node name="Title" type="Label" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ScreenTitle"
 text = "Log service"
 
-[node name="FormGroup" type="PanelContainer" parent="Margin/Column"]
+[node name="FormGroup" type="PanelContainer" parent="Margin/PageHost/Column"]
 layout_mode = 2
+size_flags_horizontal = 3
+clip_contents = false
+theme_type_variation = &"GroupCard"
 
-[node name="Form" type="VBoxContainer" parent="Margin/Column/FormGroup"]
+[node name="FormPad" type="MarginContainer" parent="Margin/PageHost/Column/FormGroup"]
 layout_mode = 2
-theme_override_constants/separation = 8
+clip_contents = false
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_right = 16
 
-[node name="DateCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="Form" type="VBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-text = "Date (YYYY-MM-DD)"
+clip_contents = false
+theme_override_constants/separation = 0
 
-[node name="DateEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
+[node name="DateRow" type="HBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+clip_contents = false
+theme_override_constants/separation = 12
+
+[node name="DateCaption" type="Label" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/DateRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "Date"
+vertical_alignment = 1
+
+[node name="DateField" type="Button" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/DateRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-placeholder_text = "YYYY-MM-DD"
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_colors/font_hover_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_colors/font_pressed_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_field")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+alignment = 2
+text = "Sep 2, 2026"
 
-[node name="MilesCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
+[node name="HairDate" type="ColorRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-text = "Miles"
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
 
-[node name="MilesEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-placeholder_text = "Miles"
-
-[node name="CostCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-text = "Cost"
-
-[node name="CostEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-placeholder_text = "Dollars (optional)"
-
-[node name="NotesCaption" type="Label" parent="Margin/Column/FormGroup/Form"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.556863, 0.556863, 0.576471, 1)
-text = "Notes"
-
-[node name="NotesEdit" type="LineEdit" parent="Margin/Column/FormGroup/Form"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-placeholder_text = "Notes (optional)"
-
-[node name="ReceiptRow" type="HBoxContainer" parent="Margin/Column/FormGroup/Form"]
+[node name="MilesRow" type="HBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ReceiptButton" type="Button" parent="Margin/Column/FormGroup/Form/ReceiptRow"]
+[node name="MilesCaption" type="Label" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/MilesRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "Miles"
+vertical_alignment = 1
+
+[node name="MilesEdit" type="LineEdit" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/MilesRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Receipt"
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+placeholder_text = "88,000"
+alignment = 2
+virtual_keyboard_type = 2
 
-[node name="ReceiptPreview" type="TextureRect" parent="Margin/Column/FormGroup/Form/ReceiptRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(44, 44)
+[node name="HairMiles" type="ColorRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="CostRow" type="HBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CostCaption" type="Label" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/CostRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "Cost"
+vertical_alignment = 1
+
+[node name="CostEdit" type="LineEdit" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/CostRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxEmpty_field")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_field")
+theme_override_styles/read_only = SubResource("StyleBoxEmpty_field")
+placeholder_text = "45.00"
+alignment = 2
+virtual_keyboard_type = 3
+
+[node name="HairCost" type="ColorRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="NotesRow" type="HBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NotesCaption" type="Label" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/NotesRow"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"Caption"
+text = "Notes"
+
+[node name="NotesEdit" type="TextEdit" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/NotesRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+wrap_mode = 1
+placeholder_text = "Optional"
+
+[node name="HairNotes" type="ColorRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="ReceiptButton" type="Button" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+clip_contents = false
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = ""
+
+[node name="ReceiptInner" type="HBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/ReceiptButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="ReceiptLabel" type="Label" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/ReceiptButton/ReceiptInner"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "Receipt"
+vertical_alignment = 1
+
+[node name="ReceiptPreview" type="TextureRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/ReceiptButton/ReceiptInner"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="ReceiptChevron" type="TextureRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/ReceiptButton/ReceiptInner"]
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5_chevron")
 expand_mode = 1
 stretch_mode = 5
+mouse_filter = 2
 
-[node name="ErrorLabel" type="Label" parent="Margin/Column"]
+[node name="HairReceipt" type="ColorRect" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="NotifyRow" type="HBoxContainer" parent="Margin/PageHost/Column/FormGroup/FormPad/Form"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+clip_contents = false
+theme_override_constants/separation = 12
+
+[node name="NotifyLabel" type="Label" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/NotifyRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"Caption"
+text = "Remind me"
+vertical_alignment = 1
+
+[node name="NotifySwitch" type="Control" parent="Margin/PageHost/Column/FormGroup/FormPad/Form/NotifyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(51, 31)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("3_switch")
+
+[node name="CtaGap" type="Control" parent="Margin/PageHost/Column"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ErrorLabel" type="Label" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.270588, 0.227451, 1)
 autowrap_mode = 3
 
-[node name="LogButton" type="Button" parent="Margin/Column"]
+[node name="LogButton" type="Button" parent="Margin/PageHost/Column"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"CreamButton"
+text = "Log this service"
+
+[node name="DeleteJobButton" type="Button" parent="Margin/PageHost/Column"]
+unique_name_in_owner = true
+visible = false
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
-text = "Log this service"
+theme_type_variation = &"DangerButton"
+theme_override_font_sizes/font_size = 17
+text = "Delete job"
+
+[node name="KeyboardPad" type="Control" parent="Margin/PageHost/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
