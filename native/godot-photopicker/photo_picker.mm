@@ -52,7 +52,7 @@
 #import "platform/iphone/view_controller.h"
 #endif
 
-PhotoPicker *instance = NULL;
+static PhotoPicker *instance = NULL;
 
 @interface GodotPhotoPicker : NSObject <UINavigationControllerDelegate, UIImagePickerControllerDelegate>
 

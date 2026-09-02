@@ -20,7 +20,7 @@
 #import "platform/iphone/view_controller.h"
 #endif
 
-DatePicker *instance = NULL;
+static DatePicker *instance = NULL;
 
 @interface GodotDatePicker : NSObject
 
