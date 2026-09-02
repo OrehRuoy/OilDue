@@ -47,4 +47,5 @@ theme/custom="res://assets/theme.tres"
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.101961, 0.090196, 0.078431, 1)
