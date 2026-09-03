@@ -166,6 +166,10 @@ Selection highlight on Add service (`#3D3832` + cream hairline), Lauren white gl
 
 iOS Files list in `user://` (no FileDialog on phone). First-build check: icon 1024, splash, plugins, Developer hidden. Keep 5–35. No feature changes. Units/stats still later.
 
+## Day 38
+
+Fix device stretch/scale + hit targets; first-run one placeholder car (no fake miles/history). Existing garage.json untouched. StoreKit / killed-app notify / listing submit still later.
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.

@@ -832,7 +832,23 @@ func _seed() -> Dictionary:
 		"currency": "USD",
 		"notify_lead_days": 7,
 		"unlocked": false,
-		"vehicles": [],
+		"vehicles": [
+			{
+				"id": "v_01",
+				"year": 0,
+				"make": "",
+				"model": "",
+				"name": "My car",
+				"vin": "",
+				"plate": "",
+				"odometer": 0,
+				"odometer_date": "",
+				"photo": "",
+				"archived": false,
+				"services": [],
+				"history": [],
+			},
+		],
 	}
 
 

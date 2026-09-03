@@ -4,8 +4,9 @@ const DueMath = preload("res://scripts/due_math.gd")
 const ServiceIcons = preload("res://scripts/service_icons.gd")
 const PanScroll = preload("res://scripts/pan_scroll.gd")
 const TAP_MIN := 44.0
-const ROW_MIN := 56.0
-const TILE := 60.0
+const ROW_MIN := 64.0
+const TILE := 72.0
+const TILE_WRAP_H := 96.0
 const COLOR_PRIMARY := Color("#F4EFE6")
 const COLOR_SURFACE := Color("#2A2622")
 const COLOR_HAIRLINE := Color("#3D3832")
@@ -143,7 +144,7 @@ func _fill_header(current_id: String) -> void:
 func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	var vid := str(vehicle.get("id", ""))
 	var wrap := Button.new()
-	wrap.custom_minimum_size = Vector2(TILE, 82)
+	wrap.custom_minimum_size = Vector2(TILE, TILE_WRAP_H)
 	wrap.flat = true
 	var empty := StyleBoxEmpty.new()
 	wrap.add_theme_stylebox_override("normal", empty)
@@ -216,7 +217,7 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	name_label.clip_text = true
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_SECONDARY)
-	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_font_size_override("font_size", 15)
 	name_label.custom_minimum_size = Vector2(TILE, 0)
 
 	col.add_child(panel)
@@ -227,7 +228,7 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 
 func _make_add_tile() -> Control:
 	var wrap := Button.new()
-	wrap.custom_minimum_size = Vector2(TILE, 82)
+	wrap.custom_minimum_size = Vector2(TILE, TILE_WRAP_H)
 	wrap.flat = true
 	var empty := StyleBoxEmpty.new()
 	wrap.add_theme_stylebox_override("normal", empty)
@@ -291,7 +292,7 @@ func _make_add_tile() -> Control:
 	name_label.clip_text = true
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_MUTED)
-	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_font_size_override("font_size", 15)
 	name_label.custom_minimum_size = Vector2(TILE, 0)
 
 	col.add_child(panel)
@@ -324,21 +325,27 @@ func _vehicle_display_name(vehicle: Dictionary) -> String:
 	var stored := str(vehicle.get("name", "")).strip_edges()
 	if stored != "":
 		return stored
-	return ("%s %s %s" % [
-		vehicle.get("year", ""),
-		vehicle.get("make", ""),
-		vehicle.get("model", ""),
-	]).strip_edges()
+	return _vehicle_spec_line(vehicle)
+
+
+func _vehicle_spec_line(vehicle: Dictionary) -> String:
+	var year := _as_int(vehicle.get("year"), 0)
+	var make := str(vehicle.get("make", "")).strip_edges()
+	var model := str(vehicle.get("model", "")).strip_edges()
+	var parts: PackedStringArray = PackedStringArray()
+	if year > 0:
+		parts.append(str(year))
+	if make != "":
+		parts.append(make)
+	if model != "":
+		parts.append(model)
+	return " ".join(parts)
 
 
 func _fill_card(vehicle: Dictionary) -> void:
 	_fill_card_photo(str(vehicle.get("photo", "")))
 	_card_nick.text = _vehicle_display_name(vehicle)
-	_card_spec.text = ("%s %s %s" % [
-		vehicle.get("year", ""),
-		vehicle.get("make", ""),
-		vehicle.get("model", ""),
-	]).strip_edges()
+	_card_spec.text = _vehicle_spec_line(vehicle)
 	_miles_val.text = _format_miles(_miles)
 	var rows := _collect_rows(vehicle)
 	_add_service.text = "Add another service" if rows.size() >= 1 else "Add service"
