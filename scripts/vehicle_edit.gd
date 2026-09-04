@@ -225,6 +225,7 @@ func _hero_fade_texture() -> GradientTexture2D:
 
 
 func _open_sheet() -> void:
+	PickSheet.dismiss_keyboard()
 	_error.text = ""
 	_photo_sheet.visible = true
 

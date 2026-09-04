@@ -129,6 +129,7 @@ func _fill_photo_hole(src_path: String) -> void:
 
 
 func _open_photo_sheet() -> void:
+	PickSheet.dismiss_keyboard()
 	_error.text = ""
 	_photo_sheet.visible = true
 

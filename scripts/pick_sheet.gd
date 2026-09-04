@@ -25,6 +25,18 @@ static func present_notice(host: Node, title: String, body: String) -> void:
 	_open_sheet(host, title, body, PackedStringArray(), "", Callable(), false)
 
 
+static func dismiss_keyboard() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		var vp := tree.root.get_viewport()
+		if vp != null:
+			var owner := vp.gui_get_focus_owner()
+			if owner is Control:
+				(owner as Control).release_focus()
+			vp.gui_release_focus()
+	DisplayServer.virtual_keyboard_hide()
+
+
 static func _open_sheet(
 	host: Node,
 	title: String,
@@ -34,6 +46,7 @@ static func _open_sheet(
 	on_pick: Callable,
 	allow_other: bool
 ) -> void:
+	dismiss_keyboard()
 	if host == null or _busy:
 		return
 	_busy = true

@@ -10,6 +10,7 @@ const COLOR_PRIMARY := Color("#F4EFE6")
 var _choices: Array = []
 var _selected := -1
 var _row_buttons: Array = []
+var _adding := false
 
 @onready var _type_rows: VBoxContainer = %TypeRows
 @onready var _custom_block: VBoxContainer = %CustomBlock
@@ -22,6 +23,7 @@ var _row_buttons: Array = []
 func _ready() -> void:
 	_fill_types()
 	%AddButton.pressed.connect(_on_add_pressed)
+	%AddButton.visible = false
 	_apply_selection(-1)
 	_error.text = ""
 	PanScroll.wire_fields(_custom_block)
@@ -78,7 +80,6 @@ func _make_type_row(index: int, tmpl: Dictionary) -> Button:
 	btn.clip_contents = false
 	btn.flat = true
 	btn.text = ""
-	btn.pressed.connect(_on_type_row_pressed.bind(index))
 	PanScroll.wire(btn, _on_type_row_pressed.bind(index))
 
 	var hbox := HBoxContainer.new()
@@ -116,7 +117,22 @@ func _make_type_row(index: int, tmpl: Dictionary) -> Button:
 
 
 func _on_type_row_pressed(index: int) -> void:
+	if _adding:
+		return
+	if index < 0 or index >= _choices.size():
+		return
+	var tmpl: Dictionary = _choices[index]
+	if typeof(tmpl) != TYPE_DICTIONARY:
+		return
+	if str(tmpl.get("id", "")) == "custom":
+		_apply_selection(index)
+		return
+	_adding = true
 	_apply_selection(index)
+	await get_tree().create_timer(0.08).timeout
+	if not is_inside_tree():
+		return
+	_commit_add()
 
 
 func _apply_selection(index: int) -> void:
@@ -130,11 +146,12 @@ func _apply_selection(index: int) -> void:
 		btn.add_theme_stylebox_override("hover", _row_style(on))
 		btn.add_theme_stylebox_override("pressed", _row_style(on))
 		btn.add_theme_stylebox_override("focus", _row_style(on))
-	var picked := _selected >= 0
-	%AddButton.disabled = not picked
 	var tmpl := _selected_template()
 	var is_custom := str(tmpl.get("id", "")) == "custom"
 	_custom_block.visible = is_custom
+	%AddButton.visible = is_custom
+	%AddButton.disabled = not is_custom
+	%AddButton.text = "Add"
 	if is_custom:
 		_name_edit.text = ""
 		_miles_edit.text = ""
@@ -166,10 +183,18 @@ func _selected_template() -> Dictionary:
 
 
 func _on_add_pressed() -> void:
+	if _adding:
+		return
+	_adding = true
+	_commit_add()
+
+
+func _commit_add() -> void:
 	_error.text = ""
 	var tmpl := _selected_template()
 	if tmpl.is_empty():
 		_error.text = "Pick a service."
+		_adding = false
 		return
 	var type_id := str(tmpl.get("id", ""))
 	var label := str(tmpl.get("name", ""))
@@ -179,19 +204,23 @@ func _on_add_pressed() -> void:
 		label = _name_edit.text.strip_edges()
 		if label == "":
 			_error.text = "Enter a name."
+			_adding = false
 			return
 		var miles_parsed := _parse_optional_int(_miles_edit.text)
 		if not bool(miles_parsed["ok"]):
 			_error.text = "Interval miles must be a whole number, or blank."
+			_adding = false
 			return
 		var months_parsed := _parse_optional_int(_months_edit.text)
 		if not bool(months_parsed["ok"]):
 			_error.text = "Interval months must be a whole number, or blank."
+			_adding = false
 			return
 		miles = int(miles_parsed["value"])
 		months = int(months_parsed["value"])
 	if not GarageStore.add_service(type_id, label, miles, months):
 		_error.text = "Could not add this service."
+		_adding = false
 		return
 	get_tree().change_scene_to_file("res://scenes/garage.tscn")
 

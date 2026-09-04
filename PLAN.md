@@ -182,6 +182,10 @@ Day 40: local make/model picker (scroll + typeahead) on add/edit car; offline da
 
 Day 41: first-run goes straight to Add first car (welcome copy on that screen); uses Day 40 make/model picker; no fake My car seed; optional one-tip after save; existing installs untouched.
 
+## Day 42
+
+Day 42: hide keyboard when opening make/model sheets; Add service tap-to-add for templates (Custom still confirms).
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.
