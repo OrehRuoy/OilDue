@@ -1,8 +1,10 @@
 extends Node
 
 const PRODUCT_ID := "unlock_oil_due"
+const EDITOR_PRICE := "$2.99"
 
 signal purchase_finished(ok: bool)
+signal price_updated(price: String)
 
 var last_ok := false
 var last_message := ""
@@ -39,6 +41,30 @@ func restore() -> void:
 	last_message = "Nothing to restore in the editor."
 
 
+func localized_price() -> String:
+	if not _ios_storekit():
+		return EDITOR_PRICE
+	if not is_price_ready():
+		return ""
+	var store := _store()
+	if store == null or not store.has_method("get_price"):
+		return ""
+	return str(store.call("get_price")).strip_edges()
+
+
+func is_price_ready() -> bool:
+	if not _ios_storekit():
+		return true
+	var store := _store()
+	if store == null:
+		return false
+	if store.has_method("is_price_ready"):
+		return bool(store.call("is_price_ready"))
+	if store.has_method("get_price"):
+		return str(store.call("get_price")).strip_edges() != ""
+	return false
+
+
 func _ios_storekit() -> bool:
 	return OS.has_feature("ios") and (
 		Engine.has_singleton("StoreKit") or Engine.has_singleton("InAppStore")
@@ -60,9 +86,13 @@ func _bind_store() -> void:
 	_connect_if_present(store, "purchase_updated", _on_native_purchase_updated)
 	_connect_if_present(store, "purchase_failed", _on_native_purchase_failed)
 	_connect_if_present(store, "entitlements_updated", _on_native_entitlements_updated)
+	_connect_if_present(store, "products_loaded", _on_native_products_loaded)
+	_connect_if_present(store, "products_failed", _on_native_products_failed)
 	if not _store_inited and store.has_method("initialize"):
 		_store_inited = true
 		store.call("initialize", PRODUCT_ID)
+	if is_price_ready():
+		price_updated.emit(localized_price())
 
 
 func _connect_if_present(store: Object, signal_name: String, callable: Callable) -> void:
@@ -133,6 +163,17 @@ func _on_native_purchase_failed(message: String = "") -> void:
 	else:
 		last_message = str(message)
 	purchase_finished.emit(false)
+
+
+func _on_native_products_loaded(price: String = "") -> void:
+	var shown := str(price).strip_edges()
+	if shown == "":
+		shown = localized_price()
+	price_updated.emit(shown)
+
+
+func _on_native_products_failed(_message: String = "") -> void:
+	price_updated.emit("")
 
 
 func _on_native_entitlements_updated(unlocked: bool = false) -> void:

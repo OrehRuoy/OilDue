@@ -186,6 +186,10 @@ Day 41: first-run goes straight to Add first car (welcome copy on that screen); 
 
 Day 42: hide keyboard when opening make/model sheets; Add service tap-to-add for templates (Custom still confirms).
 
+## Day 43
+
+Day 43: Unlock shows StoreKit localized price; Restore purchases; filled form values cream vs gray placeholders.
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.

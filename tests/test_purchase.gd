@@ -39,6 +39,9 @@ func _cases() -> String:
 	fail = _expect(Purchase.last_ok, "editor buy last_ok")
 	if fail != "":
 		return fail
+	fail = _expect(Purchase.localized_price() == "$2.99", "editor localized_price is $2.99")
+	if fail != "":
+		return fail
 	return ""
 
 
