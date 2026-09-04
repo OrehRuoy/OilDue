@@ -4,6 +4,8 @@ const ServiceIcons = preload("res://scripts/service_icons.gd")
 const PanScroll = preload("res://scripts/pan_scroll.gd")
 const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 const DueMath = preload("res://scripts/due_math.gd")
+const PickSheet = preload("res://scripts/pick_sheet.gd")
+const VehicleCatalog = preload("res://scripts/vehicle_catalog.gd")
 
 @onready var _year_edit: LineEdit = %YearEdit
 @onready var _make_edit: LineEdit = %MakeEdit
@@ -26,7 +28,7 @@ func _ready() -> void:
 	var vehicle := _target_vehicle()
 	if GarageStore.selected_vehicle_id == "":
 		GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
-	_year_edit.text = str(int(vehicle.get("year", 0)))
+	_year_edit.text = str(_as_int(vehicle.get("year"), 0))
 	_make_edit.text = str(vehicle.get("make", ""))
 	_model_edit.text = str(vehicle.get("model", ""))
 	_name_edit.text = str(vehicle.get("name", ""))
@@ -40,6 +42,7 @@ func _ready() -> void:
 	_photo_sheet.visible = false
 	%SaveButton.pressed.connect(_on_save_pressed)
 	%AddCarButton.pressed.connect(_on_add_car_pressed)
+	_arm_make_model_fields()
 	PanScroll.wire_fields($Margin/PageHost/PageScroll)
 	PanScroll.wire($Margin/PageHost/PageScroll/Column/FormGroup, func() -> void: pass)
 	%ArchiveButton.pressed.connect(_on_archive_pressed)
@@ -62,6 +65,41 @@ func _exit_tree() -> void:
 		PhotoService.failed.disconnect(_on_photo_failed)
 
 
+func _arm_make_model_fields() -> void:
+	_lock_pick_field(_make_edit)
+	_lock_pick_field(_model_edit)
+	PanScroll.wire(_make_edit, _open_make_pick)
+	PanScroll.wire(_model_edit, _open_model_pick)
+
+
+func _lock_pick_field(field: LineEdit) -> void:
+	field.editable = false
+	field.focus_mode = Control.FOCUS_NONE
+	field.set_meta("skip_pan_focus", true)
+
+
+func _open_make_pick() -> void:
+	PickSheet.present(self, "Make", VehicleCatalog.makes(), _make_edit.text, _on_make_picked)
+
+
+func _open_model_pick() -> void:
+	var make_s := _make_edit.text.strip_edges()
+	if make_s == "":
+		PickSheet.present_notice(self, "Model", "Pick make first")
+		return
+	PickSheet.present(self, "Model", VehicleCatalog.models(make_s), _model_edit.text, _on_model_picked)
+
+
+func _on_make_picked(value: String) -> void:
+	_make_edit.text = value.strip_edges()
+	if not VehicleCatalog.has_model(_make_edit.text, _model_edit.text):
+		_model_edit.text = ""
+
+
+func _on_model_picked(value: String) -> void:
+	_model_edit.text = value.strip_edges()
+
+
 func _target_vehicle() -> Dictionary:
 	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
 	if vehicle.is_empty():
@@ -73,11 +111,33 @@ func _vehicle_display_name(vehicle: Dictionary) -> String:
 	var stored := str(vehicle.get("name", "")).strip_edges()
 	if stored != "":
 		return stored
-	return ("%s %s %s" % [
-		vehicle.get("year", ""),
-		vehicle.get("make", ""),
-		vehicle.get("model", ""),
-	]).strip_edges()
+	return _vehicle_spec_line(vehicle)
+
+
+func _vehicle_spec_line(vehicle: Dictionary) -> String:
+	var year := _as_int(vehicle.get("year"), 0)
+	var make := str(vehicle.get("make", "")).strip_edges()
+	var model := str(vehicle.get("model", "")).strip_edges()
+	var parts: PackedStringArray = PackedStringArray()
+	if year > 0:
+		parts.append(str(year))
+	if make != "":
+		parts.append(make)
+	if model != "":
+		parts.append(model)
+	return " ".join(parts)
+
+
+func _as_int(value: Variant, fallback: int) -> int:
+	if value == null:
+		return fallback
+	var value_type := typeof(value)
+	if value_type == TYPE_INT or value_type == TYPE_FLOAT:
+		return int(value)
+	var raw := str(value).strip_edges()
+	if raw.is_valid_int():
+		return int(raw)
+	return fallback
 
 
 func _show_photo(filename: String) -> void:
@@ -124,11 +184,7 @@ func _show_photo(filename: String) -> void:
 		nick.add_theme_color_override("font_color", Color("#F4EFE6"))
 		nick.add_theme_font_size_override("font_size", 24)
 		var spec := Label.new()
-		spec.text = ("%s %s %s" % [
-			vehicle.get("year", ""),
-			vehicle.get("make", ""),
-			vehicle.get("model", ""),
-		]).strip_edges()
+		spec.text = _vehicle_spec_line(vehicle)
 		spec.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spec.add_theme_color_override("font_color", Color("#C8C2B8"))
 		spec.add_theme_font_size_override("font_size", 14)
@@ -139,21 +195,18 @@ func _show_photo(filename: String) -> void:
 	_photo_slot.visible = false
 	_placeholder.visible = true
 	%PlaceNick.text = _vehicle_display_name(vehicle)
-	%PlaceSpec.text = ("%s %s %s" % [
-		vehicle.get("year", ""),
-		vehicle.get("make", ""),
-		vehicle.get("model", ""),
-	]).strip_edges()
+	%PlaceSpec.text = _vehicle_spec_line(vehicle)
 	var wrap := CenterContainer.new()
 	wrap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var glyph := TextureRect.new()
-	glyph.texture = ServiceIcons.CAR
-	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	glyph.custom_minimum_size = Vector2(40, 40)
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrap.add_child(glyph)
+	if ServiceIcons.CAR != null:
+		var glyph := TextureRect.new()
+		glyph.texture = ServiceIcons.CAR
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.custom_minimum_size = Vector2(40, 40)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wrap.add_child(glyph)
 	_place_hole.add_child(wrap)
 
 

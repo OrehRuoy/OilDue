@@ -111,7 +111,7 @@ expand_icon = true
 
 [node name="CarStrip" type="ScrollContainer" parent="SafeArea/Column"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(0, 132)
 layout_mode = 2
 size_flags_horizontal = 3
 vertical_scroll_mode = 0
@@ -192,7 +192,9 @@ theme_override_styles/hover = SubResource("StyleBoxEmpty_ghost")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_ghost")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_ghost")
 alignment = 0
+autowrap_mode = 3
 text = "Daily"
+clip_text = false
 
 [node name="DueChip" type="Label" parent="SafeArea/Column/ListingCard/CardCol/HeroRow/InfoCol/NameRow"]
 unique_name_in_owner = true

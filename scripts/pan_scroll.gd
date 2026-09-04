@@ -2,11 +2,13 @@ extends RefCounted
 class_name PanScroll
 
 const THRESHOLD := 8.0
+const TAP_DEBOUNCE_MS := 400
 
 
 static func wire(host: Control, on_tap: Callable) -> void:
 	host.set_meta("pan_start", Vector2.ZERO)
 	host.set_meta("pan_drag", false)
+	host.set_meta("pan_tap_ms", 0)
 	host.gui_input.connect(_on_gui.bind(host, on_tap))
 
 
@@ -16,7 +18,8 @@ static func wire_focus(host: Control) -> void:
 
 static func wire_fields(root: Node) -> void:
 	if root is LineEdit:
-		wire_focus(root as LineEdit)
+		if not bool(root.get_meta("skip_pan_focus", false)):
+			wire_focus(root as LineEdit)
 	elif root is TextEdit:
 		wire_focus(root as TextEdit)
 	for child in root.get_children():
@@ -45,7 +48,7 @@ static func _on_gui(event: InputEvent, host: Control, on_tap: Callable) -> void:
 			var dragged := bool(host.get_meta("pan_drag", false))
 			_mark_handled(host)
 			if not dragged:
-				on_tap.call()
+				_fire_tap(host, on_tap)
 	elif event is InputEventMouseMotion:
 		var motion := event as InputEventMouseMotion
 		if motion.button_mask & MOUSE_BUTTON_MASK_LEFT == 0:
@@ -60,7 +63,7 @@ static func _on_gui(event: InputEvent, host: Control, on_tap: Callable) -> void:
 			var dragged := bool(host.get_meta("pan_drag", false))
 			_mark_handled(host)
 			if not dragged:
-				on_tap.call()
+				_fire_tap(host, on_tap)
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		_apply_drag(host, scroll, drag.position, drag.relative)
@@ -82,6 +85,17 @@ static func _apply_drag(host: Control, scroll: ScrollContainer, pos: Vector2, re
 	elif can_h:
 		scroll.scroll_horizontal -= int(relative.x)
 	_mark_handled(host)
+
+
+static func _fire_tap(host: Control, on_tap: Callable) -> void:
+	if host == null or not is_instance_valid(host):
+		return
+	var now := Time.get_ticks_msec()
+	var last := int(host.get_meta("pan_tap_ms", 0))
+	if now - last < TAP_DEBOUNCE_MS:
+		return
+	host.set_meta("pan_tap_ms", now)
+	on_tap.call()
 
 
 static func _mark_handled(host: Control) -> void:

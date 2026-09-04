@@ -6,7 +6,7 @@ const PanScroll = preload("res://scripts/pan_scroll.gd")
 const TAP_MIN := 44.0
 const ROW_MIN := 64.0
 const TILE := 72.0
-const TILE_WRAP_H := 96.0
+const TILE_WRAP_H := 120.0
 const COLOR_PRIMARY := Color("#F4EFE6")
 const COLOR_SURFACE := Color("#2A2622")
 const COLOR_HAIRLINE := Color("#3D3832")
@@ -15,6 +15,7 @@ const COLOR_MUTED := Color("#9A9388")
 const COLOR_ACCENT := Color("#FF453A")
 const COLOR_SOON := Color("#FF9F0A")
 const CHEVRON := preload("res://assets/icons/chevron_right.png")
+const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 
 const STATUS_ORDER := {
 	"Overdue": 0,
@@ -55,9 +56,13 @@ const STATUS_COLOR := {
 
 var _miles: int = 0
 var _focus_service_id := ""
+var _leaving := false
 
 
 func _ready() -> void:
+	if GarageStore.vehicles_list().is_empty():
+		_go("res://scenes/vehicle_add.tscn")
+		return
 	_refresh_from_store()
 	_miles_popup.visible = false
 	%Gear.pressed.connect(_on_gear_pressed)
@@ -72,6 +77,7 @@ func _ready() -> void:
 	_log_button.pressed.connect(_on_log_pressed)
 	%WelcomeAdd.pressed.connect(_on_welcome_add_pressed)
 	NotifyService.reschedule()
+	_maybe_show_log_tip()
 
 
 func _current_display_vehicle() -> Dictionary:
@@ -84,10 +90,7 @@ func _current_display_vehicle() -> Dictionary:
 
 func _refresh_from_store() -> void:
 	if GarageStore.vehicles_list().is_empty():
-		_welcome_card.visible = true
-		_listing_card.visible = false
-		_service_scroll.visible = false
-		_fill_header("")
+		_go("res://scenes/vehicle_add.tscn")
 		return
 	_welcome_card.visible = false
 	_listing_card.visible = true
@@ -97,6 +100,24 @@ func _refresh_from_store() -> void:
 	_miles = int(vehicle.get("odometer", 0))
 	_fill_card(vehicle)
 	_build_rows(vehicle)
+
+
+func _maybe_show_log_tip() -> void:
+	if bool(GarageStore.data.get("log_tip_seen", true)):
+		return
+	ConfirmSheet.present(
+		self,
+		"When you do a service, tap Log.",
+		"",
+		"Got it",
+		"",
+		Callable(),
+		_on_log_tip_dismissed
+	)
+
+
+func _on_log_tip_dismissed() -> void:
+	GarageStore.mark_log_tip_seen()
 
 
 func _fill_card_photo(filename: String) -> void:
@@ -116,13 +137,14 @@ func _fill_card_photo(filename: String) -> void:
 	var wrap := CenterContainer.new()
 	wrap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var glyph := TextureRect.new()
-	glyph.texture = ServiceIcons.CAR
-	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	glyph.custom_minimum_size = Vector2(40, 40)
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrap.add_child(glyph)
+	if ServiceIcons.CAR != null:
+		var glyph := TextureRect.new()
+		glyph.texture = ServiceIcons.CAR
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.custom_minimum_size = Vector2(40, 40)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wrap.add_child(glyph)
 	_card_hole.add_child(wrap)
 
 
@@ -199,7 +221,7 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hole.add_child(pic)
-	else:
+	elif ServiceIcons.CAR != null:
 		var glyph := TextureRect.new()
 		glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		glyph.texture = ServiceIcons.CAR
@@ -212,13 +234,15 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	panel.add_child(pad)
 
 	var name_label := Label.new()
-	name_label.text = _vehicle_display_name(vehicle)
+	name_label.text = _tile_caption_text(vehicle)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.clip_text = true
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.clip_text = false
+	name_label.max_lines_visible = 3
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_SECONDARY)
-	name_label.add_theme_font_size_override("font_size", 15)
-	name_label.custom_minimum_size = Vector2(TILE, 0)
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.custom_minimum_size = Vector2(TILE, 36)
 
 	col.add_child(panel)
 	col.add_child(name_label)
@@ -303,10 +327,10 @@ func _make_add_tile() -> Control:
 
 func _on_add_car_tile_pressed() -> void:
 	if GarageStore.vehicles_list().is_empty() or GarageStore.is_unlocked():
-		get_tree().change_scene_to_file("res://scenes/vehicle_add.tscn")
+		_go("res://scenes/vehicle_add.tscn")
 		return
 	GarageStore.unlock_back_scene = "res://scenes/garage.tscn"
-	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
+	_go("res://scenes/unlock.tscn")
 
 
 func _on_welcome_add_pressed() -> void:
@@ -328,6 +352,71 @@ func _vehicle_display_name(vehicle: Dictionary) -> String:
 	return _vehicle_spec_line(vehicle)
 
 
+func _generated_vehicle_name(vehicle: Dictionary) -> String:
+	var year := _as_int(vehicle.get("year"), 0)
+	var make := str(vehicle.get("make", "")).strip_edges()
+	var model := str(vehicle.get("model", "")).strip_edges()
+	return ("%s %s %s" % [year, make, model]).strip_edges()
+
+
+func _card_nick_text(vehicle: Dictionary) -> String:
+	var stored := str(vehicle.get("name", "")).strip_edges()
+	if stored == "" or stored != _generated_vehicle_name(vehicle):
+		return _vehicle_display_name(vehicle)
+	var year := _as_int(vehicle.get("year"), 0)
+	var rest := ("%s %s" % [
+		str(vehicle.get("make", "")).strip_edges(),
+		str(vehicle.get("model", "")).strip_edges(),
+	]).strip_edges()
+	if year > 0 and rest != "":
+		return "%s\n%s" % [str(year), rest]
+	return stored
+
+
+func _tile_caption_text(vehicle: Dictionary) -> String:
+	var stored := str(vehicle.get("name", "")).strip_edges()
+	if stored != "" and stored != _generated_vehicle_name(vehicle):
+		return stored
+	var year := _as_int(vehicle.get("year"), 0)
+	var make := str(vehicle.get("make", "")).strip_edges()
+	var model := str(vehicle.get("model", "")).strip_edges()
+	var parts: PackedStringArray = PackedStringArray()
+	if year > 0:
+		parts.append(str(year))
+	if make != "":
+		parts.append(make)
+	if model != "":
+		parts.append(model)
+	if parts.is_empty():
+		return stored
+	return "\n".join(parts)
+
+
+func _apply_card_nick(nick: String) -> void:
+	for child in _card_nick.get_children():
+		_card_nick.remove_child(child)
+		child.queue_free()
+	_card_nick.text = ""
+	_card_nick.clip_text = false
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 0)
+	var lines := nick.split("\n")
+	for i in range(lines.size()):
+		var lab := Label.new()
+		lab.text = str(lines[i])
+		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lab.clip_text = false
+		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lab.add_theme_color_override("font_color", COLOR_PRIMARY)
+		lab.add_theme_font_size_override("font_size", 24 if i == 0 else 17)
+		col.add_child(lab)
+	_card_nick.add_child(col)
+	_card_nick.custom_minimum_size.y = 56 if lines.size() > 1 else 44
+
+
 func _vehicle_spec_line(vehicle: Dictionary) -> String:
 	var year := _as_int(vehicle.get("year"), 0)
 	var make := str(vehicle.get("make", "")).strip_edges()
@@ -344,8 +433,12 @@ func _vehicle_spec_line(vehicle: Dictionary) -> String:
 
 func _fill_card(vehicle: Dictionary) -> void:
 	_fill_card_photo(str(vehicle.get("photo", "")))
-	_card_nick.text = _vehicle_display_name(vehicle)
-	_card_spec.text = _vehicle_spec_line(vehicle)
+	var nick := _card_nick_text(vehicle)
+	_apply_card_nick(nick)
+	var spec := _vehicle_spec_line(vehicle)
+	var stacked := nick.contains("\n")
+	_card_spec.text = "" if stacked else spec
+	_card_spec.visible = not stacked and spec != ""
 	_miles_val.text = _format_miles(_miles)
 	var rows := _collect_rows(vehicle)
 	_add_service.text = "Add another service" if rows.size() >= 1 else "Add service"
@@ -623,18 +716,18 @@ func _on_log_pressed() -> void:
 	var vehicle := _current_display_vehicle()
 	GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
 	GarageStore.selected_service_id = _focus_service_id
-	get_tree().change_scene_to_file("res://scenes/service_edit.tscn")
+	_go("res://scenes/service_edit.tscn")
 
 
 func _on_add_pressed() -> void:
 	var vehicle := _current_display_vehicle()
 	if GarageStore.selected_vehicle_id == "":
 		GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
-	get_tree().change_scene_to_file("res://scenes/service_add.tscn")
+	_go("res://scenes/service_add.tscn")
 
 
 func _on_gear_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/settings.tscn")
+	_go("res://scenes/settings.tscn")
 
 
 func _on_photo_gui_input(event: InputEvent) -> void:
@@ -642,16 +735,27 @@ func _on_photo_gui_input(event: InputEvent) -> void:
 		var mouse := event as InputEventMouseButton
 		if mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
 			_open_vehicle_edit()
+	elif event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_open_vehicle_edit()
 
 
 func _open_vehicle_edit() -> void:
 	var vehicle := _current_display_vehicle()
 	if GarageStore.selected_vehicle_id == "":
 		GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
-	get_tree().change_scene_to_file("res://scenes/vehicle_edit.tscn")
+	_go("res://scenes/vehicle_edit.tscn")
 
 
 func _on_service_row_pressed(vehicle_id: String, service_id: String) -> void:
 	GarageStore.selected_vehicle_id = vehicle_id
 	GarageStore.selected_service_id = service_id
-	get_tree().change_scene_to_file("res://scenes/service_list.tscn")
+	_go("res://scenes/service_list.tscn")
+
+
+func _go(path: String) -> void:
+	if _leaving:
+		return
+	_leaving = true
+	get_tree().change_scene_to_file(path)

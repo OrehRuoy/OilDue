@@ -43,6 +43,7 @@ func _ready() -> void:
 	%ImportCsvButton.pressed.connect(_on_import_csv_pressed)
 	%ImportSampleButton.pressed.connect(_on_import_sample_pressed)
 	%LoadDemoButton.pressed.connect(_on_load_demo_pressed)
+	%ResetFirstRunButton.pressed.connect(_on_reset_first_run_pressed)
 	%ExportCsvButton.pressed.connect(_on_export_csv_pressed)
 	%BackupZipButton.pressed.connect(_on_backup_zip_pressed)
 	%RestoreZipButton.pressed.connect(_on_restore_zip_pressed)
@@ -138,6 +139,26 @@ func _on_load_demo_pressed() -> void:
 	GarageStore.load_demo()
 	_status.text = "Demo car added."
 	_fill_archived()
+
+
+func _on_reset_first_run_pressed() -> void:
+	if not OS.is_debug_build():
+		return
+	ConfirmSheet.present(
+		self,
+		"Reset to first run?",
+		"Clears cars in this editor copy so Welcome to Oil Due shows again. Release builds never see this.",
+		"Keep",
+		"Reset",
+		_on_reset_first_run_confirm
+	)
+
+
+func _on_reset_first_run_confirm() -> void:
+	if not OS.is_debug_build():
+		return
+	GarageStore.debug_reset_first_run()
+	get_tree().change_scene_to_file("res://scenes/vehicle_add.tscn")
 
 
 func _on_import_sample_pressed() -> void:

@@ -54,7 +54,12 @@ func load_texture(filename: String) -> Texture2D:
 	var img := Image.load_from_file(path)
 	if img == null or img.is_empty():
 		return null
-	return ImageTexture.create_from_image(img)
+	if img.get_width() < 1 or img.get_height() < 1:
+		return null
+	var tex := ImageTexture.create_from_image(img)
+	if tex == null or tex.get_width() < 1:
+		return null
+	return tex
 
 
 func save_jpeg(src_path: String, dest_filename: String) -> bool:
@@ -125,7 +130,7 @@ func _present_plugin(source: int) -> void:
 	if picker.has_method("present"):
 		picker.call("present", source)
 		return
-	failed.emit("Couldn't read that photo.")
+	_ios_stub()
 
 
 func _ios_stub() -> void:

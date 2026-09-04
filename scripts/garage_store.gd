@@ -136,7 +136,7 @@ func vehicles_list() -> Array:
 	return out
 
 
-func add_vehicle(year: int, make: String, model: String, name: String, odometer: int) -> bool:
+func add_vehicle(year: int, make: String, model: String, name: String, odometer: int, with_oil: bool = true) -> bool:
 	if vehicles_list().size() >= 1 and not is_unlocked():
 		return false
 	var miles := int(odometer)
@@ -168,6 +168,10 @@ func add_vehicle(year: int, make: String, model: String, name: String, odometer:
 	})
 	selected_vehicle_id = vid
 	selected_service_id = ""
+	if not with_oil:
+		save()
+		NotifyService.reschedule()
+		return true
 	var oil_label := "Oil change"
 	var oil_miles := 5000
 	var oil_months := 6
@@ -821,8 +825,26 @@ func _migrate(payload: Dictionary, from_version: int) -> Dictionary:
 			payload["unlocked"] = false
 		if not payload.has("vehicles"):
 			payload["vehicles"] = []
+	if not payload.has("log_tip_seen"):
+		payload["log_tip_seen"] = true
 	payload["schema"] = SCHEMA
 	return payload
+
+
+func debug_reset_first_run() -> void:
+	if not OS.is_debug_build():
+		return
+	data = _seed()
+	selected_vehicle_id = ""
+	selected_service_id = ""
+	selected_history_id = ""
+	pending_import = {}
+	save()
+
+
+func mark_log_tip_seen() -> void:
+	data["log_tip_seen"] = true
+	save()
 
 
 func _seed() -> Dictionary:
@@ -832,23 +854,8 @@ func _seed() -> Dictionary:
 		"currency": "USD",
 		"notify_lead_days": 7,
 		"unlocked": false,
-		"vehicles": [
-			{
-				"id": "v_01",
-				"year": 0,
-				"make": "",
-				"model": "",
-				"name": "My car",
-				"vin": "",
-				"plate": "",
-				"odometer": 0,
-				"odometer_date": "",
-				"photo": "",
-				"archived": false,
-				"services": [],
-				"history": [],
-			},
-		],
+		"log_tip_seen": false,
+		"vehicles": [],
 	}
 
 

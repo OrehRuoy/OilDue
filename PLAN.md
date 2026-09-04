@@ -170,6 +170,18 @@ iOS Files list in `user://` (no FileDialog on phone). First-build check: icon 10
 
 Fix device stretch/scale + hit targets; first-run one placeholder car (no fake miles/history). Existing garage.json untouched. StoreKit / killed-app notify / listing submit still later.
 
+## Day 39
+
+Day 39 crash on car picture tap fixed.
+
+## Day 40
+
+Day 40: local make/model picker (scroll + typeahead) on add/edit car; offline data file; custom Other escape; no reseed.
+
+## Day 41
+
+Day 41: first-run goes straight to Add first car (welcome copy on that screen); uses Day 40 make/model picker; no fake My car seed; optional one-tip after save; existing installs untouched.
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.

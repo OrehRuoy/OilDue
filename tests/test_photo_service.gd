@@ -48,6 +48,10 @@ func _run() -> String:
 	if fail != "":
 		_cleanup()
 		return fail
+	fail = _expect(PhotoService.load_texture("") == null, "empty name is null")
+	if fail != "":
+		_cleanup()
+		return fail
 	fail = _expect(PhotoService.load_texture("nope.jpg") == null, "missing file is null")
 	if fail != "":
 		_cleanup()
