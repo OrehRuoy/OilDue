@@ -16,6 +16,8 @@ var on := false:
 		on = v
 		queue_redraw()
 
+var _tap_ms := 0
+
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(TRACK_W, TRACK_H)
@@ -27,12 +29,20 @@ func _gui_input(event: InputEvent) -> void:
 		var mouse := event as InputEventMouseButton
 		if mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT:
 			accept_event()
-			toggled.emit(not on)
+			_try_toggle()
 	elif event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
 			accept_event()
-			toggled.emit(not on)
+			_try_toggle()
+
+
+func _try_toggle() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _tap_ms < PanScroll.TAP_DEBOUNCE_MS:
+		return
+	_tap_ms = now
+	toggled.emit(not on)
 
 
 func _draw() -> void:

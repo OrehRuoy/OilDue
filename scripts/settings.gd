@@ -43,6 +43,7 @@ func _ready() -> void:
 	%ImportCsvButton.pressed.connect(_on_import_csv_pressed)
 	%ImportSampleButton.pressed.connect(_on_import_sample_pressed)
 	%LoadDemoButton.pressed.connect(_on_load_demo_pressed)
+	%TestNotifyButton.pressed.connect(_on_test_notify_pressed)
 	%ResetFirstRunButton.pressed.connect(_on_reset_first_run_pressed)
 	%ExportCsvButton.pressed.connect(_on_export_csv_pressed)
 	%BackupZipButton.pressed.connect(_on_backup_zip_pressed)
@@ -60,6 +61,8 @@ func _ready() -> void:
 	_status.text = ""
 	_setup_unlock_check()
 	_fill_archived()
+	if not NotifyService.permission_resolved.is_connected(_on_notify_permission):
+		NotifyService.permission_resolved.connect(_on_notify_permission)
 
 
 func _on_lead_selected(index: int) -> void:
@@ -139,6 +142,21 @@ func _on_load_demo_pressed() -> void:
 	GarageStore.load_demo()
 	_status.text = "Demo car added."
 	_fill_archived()
+
+
+func _on_test_notify_pressed() -> void:
+	if not OS.is_debug_build():
+		return
+	_status.text = NotifyService.schedule_test(60)
+
+
+func _on_notify_permission(ok: bool) -> void:
+	if _status.text != "Allow notifications to send the test.":
+		return
+	if ok:
+		_status.text = "Test notification in 1 min. You can kill the app."
+	else:
+		_status.text = "Turn on Notifications in iPhone Settings → Oil Due"
 
 
 func _on_reset_first_run_pressed() -> void:

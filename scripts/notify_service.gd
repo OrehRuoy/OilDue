@@ -2,30 +2,108 @@ extends Node
 
 const DueMath = preload("res://scripts/due_math.gd")
 const CAP := 64
+const TEST_ID := 900001
+const TEST_TITLE := "Oil Due test"
+const TEST_BODY := "If you see this, killed-app notify works"
+
+signal permission_resolved(ok: bool)
 
 var last_plan: Array = []
-var _permission_asked := false
 var _warned_missing := false
 var _ns_node: Node
 var _ns_ready := false
 var _live_ids: Array = []
+var _pending_test_sec := 0
+var _signals_bound := false
 
 
-func reschedule(from_enable: bool = false) -> void:
+func reschedule() -> void:
 	last_plan = _build_plan()
 	_print_plan()
 	var sched := _scheduler()
-	if from_enable and Purchase.is_unlocked() and sched != null and OS.has_feature("ios") and not _permission_asked:
-		_permission_asked = true
-		if sched.has_method("request_permission"):
-			sched.call("request_permission")
-		elif sched.has_method("request_post_notifications_permission"):
-			sched.call("request_post_notifications_permission")
 	if sched == null:
 		return
 	if OS.has_feature("ios") and _ns_node != null and not _ns_ready:
 		return
 	_apply_os(sched)
+
+
+func has_os_permission() -> bool:
+	if not OS.has_feature("ios"):
+		return true
+	var sched := _scheduler()
+	if sched == null:
+		return true
+	if sched.has_method("has_post_notifications_permission"):
+		return bool(sched.call("has_post_notifications_permission"))
+	if sched.has_method("has_permission"):
+		return bool(sched.call("has_permission"))
+	return false
+
+
+func ensure_permission() -> void:
+	if has_os_permission():
+		permission_resolved.emit(true)
+		return
+	var sched := _scheduler()
+	if sched == null:
+		permission_resolved.emit(true)
+		return
+	if sched.has_method("request_post_notifications_permission"):
+		sched.call("request_post_notifications_permission")
+	elif sched.has_method("request_permission"):
+		sched.call("request_permission")
+	else:
+		permission_resolved.emit(true)
+
+
+func schedule_test(delay_sec: int) -> String:
+	if not OS.is_debug_build():
+		return ""
+	if not OS.has_feature("ios"):
+		return "No notification plugin in the editor."
+	var sched := _scheduler()
+	if sched == null:
+		return "No notification plugin in the editor."
+	if not has_os_permission():
+		_pending_test_sec = maxi(1, delay_sec)
+		ensure_permission()
+		return "Allow notifications to send the test."
+	_fire_test(delay_sec)
+	return "Test notification in 1 min. You can kill the app."
+
+
+func _fire_test(delay_sec: int) -> void:
+	var sched := _scheduler()
+	if sched == null or not sched.has_method("schedule"):
+		return
+	if OS.has_feature("ios") and _ns_node != null and not _ns_ready:
+		_pending_test_sec = maxi(1, delay_sec)
+		return
+	var delay := maxi(1, delay_sec)
+	if sched.has_method("cancel"):
+		sched.call("cancel", TEST_ID)
+	_live_ids.erase(TEST_ID)
+	if sched == _ns_node:
+		var data = ClassDB.instantiate("NotificationData")
+		if data == null:
+			var packed := NotificationData.new()
+			packed.set_id(TEST_ID)
+			packed.set_title(TEST_TITLE)
+			packed.set_content(TEST_BODY)
+			packed.set_delay(delay)
+			sched.call("schedule", packed)
+		else:
+			data.call("set_id", TEST_ID)
+			data.call("set_title", TEST_TITLE)
+			data.call("set_content", TEST_BODY)
+			data.call("set_delay", delay)
+			sched.call("schedule", data)
+	else:
+		var unix := int(Time.get_unix_time_from_system()) + delay
+		sched.call("schedule", TEST_ID, TEST_TITLE, TEST_BODY, unix)
+	if not _live_ids.has(TEST_ID):
+		_live_ids.append(TEST_ID)
 
 
 func _apply_os(sched: Object) -> void:
@@ -129,11 +207,36 @@ func _ios_node() -> Object:
 		return null
 	_ns_node = script.new()
 	add_child(_ns_node)
+	_bind_permission_signals()
 	if _ns_node.has_signal("initialization_completed"):
 		_ns_node.connect("initialization_completed", _on_ns_ready)
 	if _ns_node.has_method("initialize"):
 		_ns_node.call("initialize")
 	return _ns_node
+
+
+func _bind_permission_signals() -> void:
+	if _signals_bound or _ns_node == null:
+		return
+	_signals_bound = true
+	if _ns_node.has_signal("post_notifications_permission_granted"):
+		_ns_node.connect("post_notifications_permission_granted", _on_permission_granted)
+	if _ns_node.has_signal("post_notifications_permission_denied"):
+		_ns_node.connect("post_notifications_permission_denied", _on_permission_denied)
+
+
+func _on_permission_granted(_permission_name: String = "") -> void:
+	permission_resolved.emit(true)
+	reschedule()
+	if _pending_test_sec > 0:
+		var delay := _pending_test_sec
+		_pending_test_sec = 0
+		_fire_test(delay)
+
+
+func _on_permission_denied(_permission_name: String = "") -> void:
+	_pending_test_sec = 0
+	permission_resolved.emit(false)
 
 
 func _on_ns_ready() -> void:
@@ -142,6 +245,10 @@ func _on_ns_ready() -> void:
 	if sched == null:
 		return
 	_apply_os(sched)
+	if _pending_test_sec > 0:
+		var delay := _pending_test_sec
+		_pending_test_sec = 0
+		_fire_test(delay)
 
 
 func _schedule_one(sched: Object, item: Dictionary) -> void:

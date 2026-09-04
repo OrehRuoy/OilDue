@@ -190,6 +190,10 @@ Day 42: hide keyboard when opening make/model sheets; Add service tap-to-add for
 
 Day 43: Unlock shows StoreKit localized price; Restore purchases; filled form values cream vs gray placeholders.
 
+## Day 44
+
+Day 44: Remind me stays ON after iOS Allow when unlocked; Developer test notification ~60s (debug only).
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.

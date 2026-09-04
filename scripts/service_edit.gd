@@ -18,6 +18,7 @@ const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 
 var _ymd := ""
 var _editing := false
+var _notify_pending := false
 
 
 func _ready() -> void:
@@ -36,6 +37,8 @@ func _ready() -> void:
 	PanScroll.wire_fields($Margin/PageHost)
 	PanScroll.wire($Margin/PageHost/Column/FormGroup, func() -> void: pass)
 	_setup_notify()
+	if not NotifyService.permission_resolved.is_connected(_on_permission_resolved):
+		NotifyService.permission_resolved.connect(_on_permission_resolved)
 	PhotoService.picked.connect(_on_photo_picked)
 	PhotoService.failed.connect(_on_photo_failed)
 	DateService.picked.connect(_on_date_picked)
@@ -58,6 +61,8 @@ func _exit_tree() -> void:
 		DateService.picked.disconnect(_on_date_picked)
 	if DateService.cancelled.is_connected(_on_date_cancelled):
 		DateService.cancelled.disconnect(_on_date_cancelled)
+	if NotifyService.permission_resolved.is_connected(_on_permission_resolved):
+		NotifyService.permission_resolved.disconnect(_on_permission_resolved)
 
 
 func _on_back_pressed() -> void:
@@ -167,19 +172,47 @@ func _setup_notify() -> void:
 
 
 func _on_notify_toggled(want_on: bool) -> void:
-	if Purchase.is_unlocked():
-		_notify.on = want_on
-		GarageStore.set_service_notify(want_on)
-		NotifyService.reschedule(want_on)
+	_error.text = ""
+	if not Purchase.is_unlocked():
+		if not want_on:
+			_notify_pending = false
+			_notify.on = false
+			GarageStore.set_service_notify(false)
+			NotifyService.reschedule()
+			return
+		_notify_pending = false
+		_notify.on = false
+		GarageStore.unlock_back_scene = "res://scenes/service_edit.tscn"
+		get_tree().change_scene_to_file("res://scenes/unlock.tscn")
 		return
 	if not want_on:
+		_notify_pending = false
 		_notify.on = false
 		GarageStore.set_service_notify(false)
-		NotifyService.reschedule()
+		return
+	_notify.on = true
+	if NotifyService.has_os_permission():
+		_notify_pending = false
+		GarageStore.set_service_notify(true)
+		return
+	_notify_pending = true
+	NotifyService.ensure_permission()
+
+
+func _on_permission_resolved(ok: bool) -> void:
+	if not _notify_pending:
+		return
+	_notify_pending = false
+	if not Purchase.is_unlocked():
+		_notify.on = false
+		return
+	if ok:
+		_notify.on = true
+		GarageStore.set_service_notify(true)
 		return
 	_notify.on = false
-	GarageStore.unlock_back_scene = "res://scenes/service_edit.tscn"
-	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
+	GarageStore.set_service_notify(false)
+	_error.text = "Turn on Notifications in iPhone Settings → Oil Due"
 
 
 func _on_photo_picked(src_path: String) -> void:

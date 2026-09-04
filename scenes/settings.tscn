@@ -365,6 +365,23 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
+[node name="HairDev4" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="TestNotifyButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Test notification (1 min)"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
 [node name="StatusLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
