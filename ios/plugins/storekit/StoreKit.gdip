@@ -8,7 +8,7 @@ deinitialization="storekit_deinit"
 linked=[]
 embedded=[]
 system=["Foundation.framework", "StoreKit.framework", "UIKit.framework"]
-capabilities=["in_app_purchases"]
+capabilities=[]
 files=[]
 linker_flags=["-ObjC"]
 
