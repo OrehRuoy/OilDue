@@ -212,6 +212,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_type_variation = &"CreamButton"
+disabled = true
 text = "Unlock Oil Due"
 
 [node name="RestoreButton" type="Button" parent="Margin/PageHost/Column"]

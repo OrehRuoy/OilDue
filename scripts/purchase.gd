@@ -8,6 +8,7 @@ signal price_updated(price: String)
 
 var last_ok := false
 var last_message := ""
+var last_products_error := ""
 var _warned_missing := false
 var _store_inited := false
 
@@ -23,6 +24,7 @@ func is_unlocked() -> bool:
 
 
 func buy() -> void:
+	print("[OilDue StoreKit] buy unlocked=%s ios=%s" % [str(GarageStore.is_unlocked()), str(_ios_storekit())])
 	if _ios_storekit():
 		_store_buy()
 		return
@@ -34,6 +36,7 @@ func buy() -> void:
 
 
 func restore() -> void:
+	print("[OilDue StoreKit] restore ios=%s" % str(_ios_storekit()))
 	if _ios_storekit():
 		_store_restore()
 		return
@@ -82,7 +85,9 @@ func _store() -> Object:
 func _bind_store() -> void:
 	var store := _store()
 	if store == null:
+		print("[OilDue StoreKit] bind: singleton missing")
 		return
+	print("[OilDue StoreKit] bind initialize %s" % PRODUCT_ID)
 	_connect_if_present(store, "purchase_updated", _on_native_purchase_updated)
 	_connect_if_present(store, "purchase_failed", _on_native_purchase_failed)
 	_connect_if_present(store, "entitlements_updated", _on_native_entitlements_updated)
@@ -107,7 +112,9 @@ func _sync_from_store() -> void:
 	if store == null:
 		return
 	if not _store_owned(store):
+		print("[OilDue StoreKit] sync: not owned")
 		return
+	print("[OilDue StoreKit] sync: owned, persist unlock")
 	GarageStore.set_unlocked(true)
 	NotifyService.reschedule()
 
@@ -127,13 +134,19 @@ func _store_buy() -> void:
 	last_ok = false
 	last_message = "Purchase didn't complete."
 	if store == null:
+		print("[OilDue StoreKit] buy: store singleton missing")
+		purchase_finished.emit(false)
 		return
+	print("[OilDue StoreKit] buy: calling native purchase")
 	if store.has_method("purchase"):
 		store.call("purchase", PRODUCT_ID)
 	elif store.has_method("buy"):
 		store.call("buy", PRODUCT_ID)
 	elif store.has_method("purchase_product"):
 		store.call("purchase_product", PRODUCT_ID)
+	else:
+		print("[OilDue StoreKit] buy: no purchase method")
+		purchase_finished.emit(false)
 
 
 func _store_restore() -> void:
@@ -141,14 +154,21 @@ func _store_restore() -> void:
 	last_ok = false
 	last_message = "Nothing to restore."
 	if store == null:
+		print("[OilDue StoreKit] restore: store singleton missing")
+		purchase_finished.emit(false)
 		return
+	print("[OilDue StoreKit] restore: calling native restore")
 	if store.has_method("restore"):
 		store.call("restore")
 	elif store.has_method("restore_purchases"):
 		store.call("restore_purchases")
+	else:
+		print("[OilDue StoreKit] restore: no restore method")
+		purchase_finished.emit(false)
 
 
 func _on_native_purchase_updated(_product_id: String = "") -> void:
+	print("[OilDue StoreKit] purchase_updated %s" % _product_id)
 	GarageStore.set_unlocked(true)
 	NotifyService.reschedule()
 	last_ok = true
@@ -157,6 +177,7 @@ func _on_native_purchase_updated(_product_id: String = "") -> void:
 
 
 func _on_native_purchase_failed(message: String = "") -> void:
+	print("[OilDue StoreKit] purchase_failed %s" % message)
 	last_ok = false
 	if str(message).strip_edges() == "":
 		last_message = "Purchase didn't complete."
@@ -166,17 +187,27 @@ func _on_native_purchase_failed(message: String = "") -> void:
 
 
 func _on_native_products_loaded(price: String = "") -> void:
+	last_products_error = ""
 	var shown := str(price).strip_edges()
 	if shown == "":
 		shown = localized_price()
+	print("[OilDue StoreKit] products_loaded %s" % shown)
 	price_updated.emit(shown)
 
 
-func _on_native_products_failed(_message: String = "") -> void:
+func _on_native_products_failed(message: String = "") -> void:
+	last_ok = false
+	if str(message).strip_edges() == "":
+		last_products_error = "Could not load App Store products. Check your connection."
+	else:
+		last_products_error = str(message)
+	last_message = last_products_error
+	print("[OilDue StoreKit] products_failed %s" % last_products_error)
 	price_updated.emit("")
 
 
 func _on_native_entitlements_updated(unlocked: bool = false) -> void:
+	print("[OilDue StoreKit] entitlements_updated %s" % str(unlocked))
 	if unlocked:
 		GarageStore.set_unlocked(true)
 		NotifyService.reschedule()
