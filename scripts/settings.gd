@@ -123,7 +123,7 @@ func _vehicle_display_name(vehicle: Dictionary) -> String:
 
 func _on_archived_pressed(vehicle_id: String) -> void:
 	if not GarageStore.is_unlocked():
-		GarageStore.unlock_back_scene = "res://scenes/settings.tscn"
+		GarageStore.set_unlock_return("res://scenes/settings.tscn")
 		get_tree().change_scene_to_file("res://scenes/unlock.tscn")
 		return
 	GarageStore.set_archived(vehicle_id, false)

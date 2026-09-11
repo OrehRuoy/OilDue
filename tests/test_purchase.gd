@@ -12,8 +12,12 @@ func _ready() -> void:
 
 func _run() -> String:
 	var snap: Dictionary = GarageStore.data.duplicate(true)
+	var back := GarageStore.unlock_back_scene
+	var cont := GarageStore.unlock_continue_scene
 	var fail := _cases()
 	GarageStore.data = snap
+	GarageStore.unlock_back_scene = back
+	GarageStore.unlock_continue_scene = cont
 	GarageStore.save()
 	return fail
 
@@ -40,6 +44,36 @@ func _cases() -> String:
 	if fail != "":
 		return fail
 	fail = _expect(Purchase.localized_price() == "$2.99", "editor localized_price is $2.99")
+	if fail != "":
+		return fail
+
+	GarageStore.set_unlock_return("res://scenes/garage.tscn", "res://scenes/vehicle_add.tscn")
+	fail = _expect(
+		GarageStore.consume_unlock_destination(true) == "res://scenes/vehicle_add.tscn",
+		"unlock after add-car continues to vehicle_add"
+	)
+	if fail != "":
+		return fail
+	fail = _expect(GarageStore.unlock_continue_scene == "", "continue scene clears after consume")
+	if fail != "":
+		return fail
+
+	GarageStore.set_unlock_return("res://scenes/garage.tscn", "res://scenes/vehicle_add.tscn")
+	fail = _expect(
+		GarageStore.consume_unlock_destination(false) == "res://scenes/garage.tscn",
+		"back without unlock returns to garage"
+	)
+	if fail != "":
+		return fail
+	fail = _expect(GarageStore.unlock_continue_scene == "", "continue scene clears on back")
+	if fail != "":
+		return fail
+
+	GarageStore.set_unlock_return("res://scenes/settings.tscn")
+	fail = _expect(
+		GarageStore.consume_unlock_destination(true) == "res://scenes/settings.tscn",
+		"unlock from settings returns to settings"
+	)
 	if fail != "":
 		return fail
 	return ""

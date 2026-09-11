@@ -20,6 +20,7 @@ var last_backup_error: String = ""
 var pending_restore_path: String = ""
 var pending_receipt_src: String = ""
 var unlock_back_scene: String = "res://scenes/garage.tscn"
+var unlock_continue_scene: String = ""
 
 
 func _ready() -> void:
@@ -86,6 +87,24 @@ func set_unlocked(v: bool) -> void:
 	data["unlocked"] = v
 	save()
 	NotifyService.reschedule()
+
+
+func set_unlock_return(back_scene: String, continue_scene: String = "") -> void:
+	unlock_back_scene = back_scene
+	unlock_continue_scene = continue_scene
+
+
+func consume_unlock_destination(unlocked: bool) -> String:
+	var path := ""
+	if unlocked:
+		path = unlock_continue_scene.strip_edges()
+	if path == "":
+		path = unlock_back_scene.strip_edges()
+	unlock_back_scene = "res://scenes/garage.tscn"
+	unlock_continue_scene = ""
+	if path == "" or not ResourceLoader.exists(path):
+		return "res://scenes/garage.tscn"
+	return path
 
 
 func archived_list() -> Array:

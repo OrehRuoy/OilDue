@@ -325,11 +325,12 @@ func _on_add_car_pressed() -> void:
 	if GarageStore.is_unlocked() or GarageStore.vehicles_list().size() == 0:
 		get_tree().change_scene_to_file("res://scenes/vehicle_add.tscn")
 		return
-	_open_unlock()
+	GarageStore.set_unlock_return("res://scenes/vehicle_edit.tscn", "res://scenes/vehicle_add.tscn")
+	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
 
 
 func _open_unlock() -> void:
-	GarageStore.unlock_back_scene = "res://scenes/vehicle_edit.tscn"
+	GarageStore.set_unlock_return("res://scenes/vehicle_edit.tscn")
 	get_tree().change_scene_to_file("res://scenes/unlock.tscn")
 
 

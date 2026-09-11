@@ -182,7 +182,7 @@ func _on_notify_toggled(want_on: bool) -> void:
 			return
 		_notify_pending = false
 		_notify.on = false
-		GarageStore.unlock_back_scene = "res://scenes/service_edit.tscn"
+		GarageStore.set_unlock_return("res://scenes/service_edit.tscn")
 		get_tree().change_scene_to_file("res://scenes/unlock.tscn")
 		return
 	if not want_on:

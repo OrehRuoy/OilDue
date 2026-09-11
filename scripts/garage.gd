@@ -329,7 +329,7 @@ func _on_add_car_tile_pressed() -> void:
 	if GarageStore.vehicles_list().is_empty() or GarageStore.is_unlocked():
 		_go("res://scenes/vehicle_add.tscn")
 		return
-	GarageStore.unlock_back_scene = "res://scenes/garage.tscn"
+	GarageStore.set_unlock_return("res://scenes/garage.tscn", "res://scenes/vehicle_add.tscn")
 	_go("res://scenes/unlock.tscn")
 
 
