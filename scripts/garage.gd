@@ -16,6 +16,7 @@ const COLOR_ACCENT := Color("#FF453A")
 const COLOR_SOON := Color("#FF9F0A")
 const CHEVRON := preload("res://assets/icons/chevron_right.png")
 const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
+const SpendRollup = preload("res://scripts/spend_rollup.gd")
 
 const STATUS_ORDER := {
 	"Overdue": 0,
@@ -53,6 +54,9 @@ const STATUS_COLOR := {
 @onready var _service_scroll: Control = %ServiceScroll
 @onready var _miles_popup: ColorRect = %MilesPopup
 @onready var _miles_edit: LineEdit = %MilesEdit
+@onready var _import_notice: Label = %ImportNotice
+@onready var _spend_row: Button = %SpendRow
+@onready var _spend_amount: Label = %SpendAmount
 
 var _miles: int = 0
 var _focus_service_id := ""
@@ -76,6 +80,8 @@ func _ready() -> void:
 	_miles_val.pressed.connect(_on_update_miles_pressed)
 	_log_button.pressed.connect(_on_log_pressed)
 	%WelcomeAdd.pressed.connect(_on_welcome_add_pressed)
+	%SpendRow.pressed.connect(_on_spend_pressed)
+	_show_import_notice()
 	NotifyService.reschedule()
 	_maybe_show_log_tip()
 
@@ -99,6 +105,8 @@ func _refresh_from_store() -> void:
 	_fill_header(str(vehicle.get("id", "")))
 	_miles = int(vehicle.get("odometer", 0))
 	_fill_card(vehicle)
+	_fill_spend(vehicle)
+	_spend_row.visible = true
 	_build_rows(vehicle)
 
 
@@ -728,6 +736,32 @@ func _on_add_pressed() -> void:
 
 func _on_gear_pressed() -> void:
 	_go("res://scenes/settings.tscn")
+
+
+func _fill_spend(vehicle: Dictionary) -> void:
+	var total := int(SpendRollup.rollup(vehicle).get("total_cents", 0))
+	if total > 0:
+		_spend_amount.text = DueMath.format_cents(total)
+		_spend_amount.visible = true
+	else:
+		_spend_amount.text = ""
+		_spend_amount.visible = false
+
+
+func _on_spend_pressed() -> void:
+	var vehicle := _current_display_vehicle()
+	GarageStore.selected_vehicle_id = str(vehicle.get("id", ""))
+	_go("res://scenes/spend.tscn")
+
+
+func _show_import_notice() -> void:
+	var msg := GarageStore.import_notice.strip_edges()
+	GarageStore.import_notice = ""
+	if msg == "":
+		_import_notice.visible = false
+		return
+	_import_notice.text = msg
+	_import_notice.visible = true
 
 
 func _on_photo_gui_input(event: InputEvent) -> void:

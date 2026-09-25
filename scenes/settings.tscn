@@ -196,18 +196,26 @@ theme_type_variation = &"GroupCard"
 
 [node name="ImportCol" type="VBoxContainer" parent="Margin/PageHost/Scroll/Column/GroupImport"]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 8
 
 [node name="ImportCsvButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupImport/ImportCol"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 theme_type_variation = &"SettingsRow"
 alignment = 0
-text = "Import CSV"
+text = "Import Vehicle Maintenance Tracker CSV"
+autowrap_mode = 3
+clip_text = false
 icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
+
+[node name="ImportHelp" type="Label" parent="Margin/PageHost/Scroll/Column/GroupImport/ImportCol"]
+layout_mode = 2
+theme_type_variation = &"Caption"
+autowrap_mode = 3
+text = "In Vehicle Maintenance Tracker, export a CSV. In Files, put it in On My iPhone → Oil Due. Then tap Import."
 
 [node name="GroupBackup" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
@@ -224,6 +232,23 @@ layout_mode = 2
 theme_type_variation = &"SettingsRow"
 alignment = 0
 text = "Export CSV"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="HairExportPdf" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="ExportPdfButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupBackup/BackupCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Export PDF"
 icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
@@ -392,7 +417,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"Caption"
-text = "Version 1.0.0"
+text = "Version 1.0.1"
 
 [node name="PrivacyLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
@@ -402,7 +427,7 @@ text = "Logs and receipts never leave this device."
 
 [node name="ImportDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true
-title = "Import CSV"
+title = "Import Vehicle Maintenance Tracker CSV"
 ok_button_text = "Open"
 file_mode = 0
 access = 2
@@ -455,7 +480,7 @@ visible = false
 layout_mode = 2
 theme_type_variation = &"Caption"
 autowrap_mode = 3
-text = "Put a CSV in Files, On My iPhone, Oil Due."
+text = "In Vehicle Maintenance Tracker, export a CSV. In Files, put it in On My iPhone → Oil Due. Photos are not in that CSV."
 
 [node name="FilePickScroll" type="ScrollContainer" parent="FilePickSheet/Center/Panel/SheetColumn"]
 unique_name_in_owner = true

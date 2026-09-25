@@ -194,6 +194,24 @@ Day 43: Unlock shows StoreKit localized price; Restore purchases; filled form va
 
 Day 44: Remind me stays ON after iOS Allow when unlocked; Developer test notification ~60s (debug only).
 
+## Day 45
+
+Day 45 is 1.0.1. Import, PDF, and spend stay free on the one free car. Unlock stays extra cars, OS date reminders, and archive.
+
+VMT CSV: Settings label is “Import Vehicle Maintenance Tracker CSV”, with help to export in VMT then put the file in Files → On My iPhone → Oil Due. Preview shows the kind in plain words, job or car counts, up to three sample rows, and a skip line. Confirm is “Add these jobs to {car}” (or “Update {car} from this file” for a car-only export). Cancel does not write. After a merge the garage shows “Imported N jobs”, or “Already on this car” when every row was already there. Parser matches headers ignoring case, accepts unpadded M/D/YYYY and a T time, and splits on semicolons when the file has no commas. Still merges onto the current car only. Photos are not in that CSV.
+
+PDF: Settings “Export PDF” writes the selected car’s service history, newest first, to Files (On My iPhone → Oil Due). Text only. Receipt photos are left out. No Unlock check.
+
+Spent on this car: garage row under the car card, then a screen. Total and a short list from logged `cost_cents`. Missing costs are ignored. Empty copy: “Add costs when you log a job.” No Unlock check.
+
+What’s New:
+
+- Import a Vehicle Maintenance Tracker CSV, with a preview before anything is saved. Photos are not in that file.
+- Export a PDF of one car’s service history to Files.
+- See what you’ve spent on this car, from costs you logged.
+
+Screenshot beats: import preview (sample rows and “CSV does not include photos”); Spent on this car (total and the short list). Do not shoot Unlock or any price.
+
 ## Never add
 
 Fuel log, VIN decode, NHTSA, shop directory, family sharing, CARFAX, ads, subscriptions, Firebase, Play listing.

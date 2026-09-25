@@ -3,6 +3,7 @@ extends Node
 const DueMath = preload("res://scripts/due_math.gd")
 const CsvExport = preload("res://scripts/csv_export.gd")
 const BackupZip = preload("res://scripts/backup_zip.gd")
+const HistoryPdf = preload("res://scripts/history_pdf.gd")
 const SCHEMA := 1
 const PATH := "user://garage.json"
 const TMP_PATH := "user://garage.json.tmp"
@@ -16,6 +17,7 @@ var selected_vehicle_id: String = ""
 var selected_service_id: String = ""
 var selected_history_id: String = ""
 var pending_import: Dictionary = {}
+var import_notice: String = ""
 var last_backup_error: String = ""
 var pending_restore_path: String = ""
 var pending_receipt_src: String = ""
@@ -567,6 +569,7 @@ func set_notify_lead_days(n: int) -> void:
 
 
 func import_merge(parsed: Dictionary) -> bool:
+	import_notice = ""
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return false
 	if not bool(parsed.get("ok", false)):
@@ -582,6 +585,7 @@ func import_merge(parsed: Dictionary) -> bool:
 			continue
 		_merge_vehicle_fields(vehicle, item)
 	var touched: Dictionary = {}
+	var added := 0
 	for item in parsed.get("jobs", []):
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
@@ -617,6 +621,7 @@ func import_merge(parsed: Dictionary) -> bool:
 			"notes": notes,
 			"receipt": "",
 		})
+		added += 1
 		touched[service_id] = true
 		if miles > int(vehicle.get("odometer", 0)):
 			vehicle["odometer"] = miles
@@ -635,6 +640,12 @@ func import_merge(parsed: Dictionary) -> bool:
 		service["next_date"] = DueMath.compute_next_date(str(service["last_date"]), interval_months)
 		service["next_miles"] = DueMath.compute_next_miles(int(service["last_miles"]), interval_miles)
 	save()
+	if added == 0:
+		import_notice = "Already on this car"
+	elif added == 1:
+		import_notice = "Imported 1 job"
+	else:
+		import_notice = "Imported %d jobs" % added
 	return true
 
 
@@ -713,6 +724,21 @@ func _newest_history_for(vehicle: Dictionary, service_id: String) -> Dictionary:
 
 func export_jobs_csv() -> String:
 	return CsvExport.jobs_csv(data)
+
+
+func write_history_pdf(path: String) -> bool:
+	if path.strip_edges() == "":
+		return false
+	var vehicle := _current_vehicle()
+	if vehicle.is_empty() or not HistoryPdf.has_jobs(vehicle):
+		return false
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_buffer(HistoryPdf.for_vehicle(vehicle))
+	file.flush()
+	file.close()
+	return true
 
 
 func write_export_csv(path: String) -> bool:

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Oil Due"
-config/version="1.0.0"
+config/version="1.0.1"
 run/main_scene="res://scenes/garage.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 boot_splash/bg_color=Color(0.101961, 0.090196, 0.078431, 1)

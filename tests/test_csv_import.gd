@@ -103,6 +103,78 @@ func _run() -> String:
 	)
 	if fail != "":
 		return fail
+
+	var empty := CsvImport.parse_text("")
+	fail = _expect(not bool(empty.get("ok", true)), "empty not ok")
+	if fail != "":
+		return fail
+	fail = _expect(str(empty.get("error", "")) == "This file has no rows.", "empty no rows")
+	if fail != "":
+		return fail
+
+	var header_only := "Id,VIN,Plate,Name,Description,Odometer,EngineHour,PartCost,LaborCost,MaintainedBy,Status,ServiceDate,CreateDate,Note\n"
+	var bare := CsvImport.parse_text(header_only)
+	fail = _expect(not bool(bare.get("ok", true)), "header only not ok")
+	if fail != "":
+		return fail
+	fail = _expect(str(bare.get("error", "")) == "This file has no rows.", "header only no rows")
+	if fail != "":
+		return fail
+
+	var folded := CsvImport.parse_text(
+		"servicedate,partcost,description,name,odometer,laborcost\n"
+		+ "2026-08-26T14:20:13,100,Oil & filter,OUTLANDER,79000,25\n"
+	)
+	fail = _expect(str(folded.get("kind", "")) == "vmt_maintenance", "headers ignore case")
+	if fail != "":
+		return fail
+	var folded_jobs: Array = folded.get("jobs", [])
+	fail = _expect(folded_jobs.size() == 1, "folded one job")
+	if fail != "":
+		return fail
+	var folded_job: Dictionary = folded_jobs[0]
+	fail = _expect(str(folded_job.get("date", "")) == "2026-08-26", "T time stays on the civil day")
+	if fail != "":
+		return fail
+	fail = _expect(int(folded_job.get("cost_cents", 0)) == 12500, "folded cost 12500")
+	if fail != "":
+		return fail
+
+	var semi := CsvImport.parse_text(
+		"ServiceDate;PartCost;Description;Name;Odometer;LaborCost\n"
+		+ "8/5/2026;10;Tires;OUTLANDER;1000;2\n"
+	)
+	fail = _expect(str(semi.get("kind", "")) == "vmt_maintenance", "semicolon kind")
+	if fail != "":
+		return fail
+	var semi_jobs: Array = semi.get("jobs", [])
+	fail = _expect(semi_jobs.size() == 1, "semicolon one job")
+	if fail != "":
+		return fail
+	var semi_job: Dictionary = semi_jobs[0]
+	fail = _expect(str(semi_job.get("date", "")) == "2026-08-05", "unpadded M/D/YYYY")
+	if fail != "":
+		return fail
+	fail = _expect(str(semi_job.get("label", "")) == "Tires", "semicolon label")
+	if fail != "":
+		return fail
+
+	var mixed := CsvImport.parse_text(
+		"ServiceDate,PartCost,Description,LaborCost\n"
+		+ "not-a-date,1,Oil,0\n"
+		+ ",1,,0\n"
+		+ "08/01/2026,4,Brakes,1\n"
+	)
+	fail = _expect(bool(mixed.get("ok", false)), "mixed file ok")
+	if fail != "":
+		return fail
+	var mixed_jobs: Array = mixed.get("jobs", [])
+	fail = _expect(mixed_jobs.size() == 1, "mixed keeps the dated job")
+	if fail != "":
+		return fail
+	fail = _expect(int(mixed.get("skipped", 0)) == 2, "mixed skips two rows")
+	if fail != "":
+		return fail
 	return ""
 
 

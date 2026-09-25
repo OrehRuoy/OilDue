@@ -9,44 +9,72 @@ class_name CsvImport
 
 const DueMath = preload("res://scripts/due_math.gd")
 const READ_ERROR := "Couldn't read this file. Email it to support and log by hand for now."
+const NO_ROWS := "This file has no rows."
 
 
 static func parse_file(path: String) -> Dictionary:
-	var empty := _result(false, "error", READ_ERROR, [], [])
+	var missing := _result(false, "error", READ_ERROR, [], [])
 	if path.strip_edges() == "":
-		return empty
+		return missing
 	if not FileAccess.file_exists(path):
-		return empty
-	var text := FileAccess.get_file_as_string(path)
-	if text.strip_edges() == "":
-		return empty
+		return missing
+	return parse_text(FileAccess.get_file_as_string(path))
+
+
+static func parse_text(text: String) -> Dictionary:
+	var no_rows := _result(false, "error", NO_ROWS, [], [])
 	if text.begins_with("\uFEFF"):
 		text = text.substr(1)
+	if text.strip_edges() == "":
+		return no_rows
+	var delim := _delimiter(text)
 	var lines := text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
 	var rows: Array = []
 	for line in lines:
 		if str(line).strip_edges() == "":
 			continue
-		rows.append(_parse_csv_line(str(line)))
-	if rows.is_empty():
-		return empty
+		rows.append(_parse_csv_line(str(line), delim))
+	if rows.size() < 2:
+		return no_rows
 	var headers: Array = []
 	for h in rows[0]:
 		headers.append(str(h).strip_edges())
 	var kind := _detect_kind(headers)
 	var vehicles: Array = []
 	var jobs: Array = []
+	var skipped := 0
+	var data_rows := 0
 	for i in range(1, rows.size()):
 		var cells: Array = rows[i]
 		if _row_empty(cells):
 			continue
+		data_rows += 1
 		if kind == "vmt_equipment":
 			vehicles.append(_equipment_vehicle(headers, cells))
 		elif kind == "vmt_maintenance":
-			jobs.append(_maintenance_job(headers, cells))
+			var job := _maintenance_job(headers, cells)
+			if _job_usable(job):
+				jobs.append(job)
+			else:
+				skipped += 1
 		else:
+			var before_v := vehicles.size()
+			var before_j := jobs.size()
 			_append_generic(headers, cells, vehicles, jobs)
-	return _result(true, kind, "", vehicles, jobs)
+			var dropped := 0
+			while jobs.size() > before_j:
+				var last: Dictionary = jobs[jobs.size() - 1]
+				if _job_usable(last):
+					break
+				jobs.pop_back()
+				dropped += 1
+			if dropped > 0:
+				skipped += dropped
+			elif vehicles.size() == before_v and jobs.size() == before_j:
+				skipped += 1
+	if data_rows == 0:
+		return no_rows
+	return _result(true, kind, "", vehicles, jobs, skipped)
 
 
 static func parse_import_date(raw: String) -> String:
@@ -54,6 +82,8 @@ static func parse_import_date(raw: String) -> String:
 	if s == "":
 		return ""
 	var date_part := s.split(" ")[0].strip_edges()
+	if date_part.contains("T"):
+		date_part = date_part.split("T")[0]
 	if date_part.contains("-") and date_part.length() >= 10:
 		var ymd := date_part.substr(0, 10)
 		if DueMath.parse_ymd(ymd).is_empty():
@@ -67,6 +97,8 @@ static func parse_import_date(raw: String) -> String:
 	var month := int(parts[0])
 	var day := int(parts[1])
 	var year := int(parts[2])
+	if year < 1000:
+		return ""
 	var ymd := DueMath.format_ymd(year, month, day)
 	if DueMath.parse_ymd(ymd).is_empty():
 		return ""
@@ -106,13 +138,14 @@ static func dollars_to_cents(raw: String) -> Dictionary:
 	return {"ok": true, "cents": int(dollars_s) * 100 + int(cents_s)}
 
 
-static func _result(ok: bool, kind: String, error: String, vehicles: Array, jobs: Array) -> Dictionary:
+static func _result(ok: bool, kind: String, error: String, vehicles: Array, jobs: Array, skipped: int = 0) -> Dictionary:
 	return {
 		"ok": ok,
 		"kind": kind,
 		"error": error,
 		"vehicles": vehicles,
 		"jobs": jobs,
+		"skipped": skipped,
 	}
 
 
@@ -129,15 +162,37 @@ static func _detect_kind(headers: Array) -> String:
 
 
 static func _has_header(headers: Array, name: String) -> bool:
+	var want := name.strip_edges().to_lower()
 	for h in headers:
-		if str(h) == name:
+		if str(h).strip_edges().to_lower() == want:
 			return true
 	return false
 
 
+static func _job_usable(job: Dictionary) -> bool:
+	if str(job.get("label", "")).strip_edges() == "":
+		return false
+	return not DueMath.parse_ymd(str(job.get("date", ""))).is_empty()
+
+
+static func _delimiter(text: String) -> String:
+	var lines := text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+	for line in lines:
+		var raw := str(line).strip_edges()
+		if raw == "":
+			continue
+		if raw.contains(","):
+			return ","
+		if raw.contains(";"):
+			return ";"
+		return ","
+	return ","
+
+
 static func _col(headers: Array, cells: Array, name: String) -> String:
+	var want := name.strip_edges().to_lower()
 	for i in range(headers.size()):
-		if str(headers[i]) == name:
+		if str(headers[i]).strip_edges().to_lower() == want:
 			if i < cells.size():
 				return str(cells[i]).strip_edges()
 			return ""
@@ -271,7 +326,7 @@ static func _row_empty(cells: Array) -> bool:
 	return true
 
 
-static func _parse_csv_line(line: String) -> Array:
+static func _parse_csv_line(line: String, delim: String = ",") -> Array:
 	var out: Array = []
 	var cur := ""
 	var in_quotes := false
@@ -290,7 +345,7 @@ static func _parse_csv_line(line: String) -> Array:
 		else:
 			if ch == "\"":
 				in_quotes = true
-			elif ch == ",":
+			elif ch == delim:
 				out.append(cur)
 				cur = ""
 			else:

@@ -1,9 +1,10 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/garage.gd" id="1_garage"]
 [ext_resource type="Texture2D" path="res://assets/icons/gear.png" id="3_gear"]
 [ext_resource type="Texture2D" path="res://assets/bg/garage_night.jpg" id="4_bay"]
 [ext_resource type="Script" path="res://scripts/safe_area.gd" id="5_safe"]
+[ext_resource type="Texture2D" path="res://assets/icons/chevron_right.png" id="6_chevron"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
 bg_color = Color(0.164706, 0.14902, 0.133333, 1)
@@ -108,6 +109,15 @@ theme_type_variation = &"IconButton"
 tooltip_text = "Gear"
 icon = ExtResource("3_gear")
 expand_icon = true
+
+[node name="ImportNotice" type="Label" parent="SafeArea/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
+theme_override_font_sizes/font_size = 15
+text = ""
 
 [node name="CarStrip" type="ScrollContainer" parent="SafeArea/Column"]
 unique_name_in_owner = true
@@ -283,6 +293,34 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_ghost")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_ghost")
 flat = true
 text = "Add another service"
+
+[node name="SpendRow" type="Button" parent="SafeArea/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Spent on this car"
+icon = ExtResource("6_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="SpendAmount" type="Label" parent="SafeArea/Column/SpendRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -148.0
+offset_right = -28.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
+theme_override_font_sizes/font_size = 17
+text = ""
+horizontal_alignment = 2
+vertical_alignment = 1
 
 [node name="WelcomeCard" type="PanelContainer" parent="SafeArea/Column"]
 unique_name_in_owner = true

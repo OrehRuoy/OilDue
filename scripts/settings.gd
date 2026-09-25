@@ -4,14 +4,16 @@ const CHEVRON := preload("res://assets/icons/chevron_right.png")
 const PanScroll = preload("res://scripts/pan_scroll.gd")
 const CsvImport = preload("res://scripts/csv_import.gd")
 const BackupZip = preload("res://scripts/backup_zip.gd")
+const HistoryPdf = preload("res://scripts/history_pdf.gd")
 const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 const LEAD_VALUES := [3, 7, 14]
 const VMT_SAMPLE := "res://tests/fixtures/vmt-maintenance-sample.csv"
 const EXPORT_CSV_PATH := "user://oil-due-export.csv"
+const HISTORY_PDF_PATH := "user://oil-due-history.pdf"
 const BACKUP_ZIP_PATH := "user://oil-due-backup.zip"
 const FILES_HINT := "Find it in Files, On My iPhone, Oil Due."
 
-enum DialogMode { SAVE_CSV, SAVE_ZIP, OPEN_ZIP }
+enum DialogMode { SAVE_CSV, SAVE_ZIP, OPEN_ZIP, SAVE_PDF }
 enum PickKind { CSV, ZIP }
 
 @onready var _lead_option: OptionButton = %LeadOption
@@ -46,6 +48,7 @@ func _ready() -> void:
 	%TestNotifyButton.pressed.connect(_on_test_notify_pressed)
 	%ResetFirstRunButton.pressed.connect(_on_reset_first_run_pressed)
 	%ExportCsvButton.pressed.connect(_on_export_csv_pressed)
+	%ExportPdfButton.pressed.connect(_on_export_pdf_pressed)
 	%BackupZipButton.pressed.connect(_on_backup_zip_pressed)
 	%RestoreZipButton.pressed.connect(_on_restore_zip_pressed)
 	%RestoreLastButton.pressed.connect(_on_restore_last_pressed)
@@ -213,6 +216,28 @@ func _on_export_csv_pressed() -> void:
 	_io_dialog.popup_centered()
 
 
+func _on_export_pdf_pressed() -> void:
+	if not HistoryPdf.has_jobs(GarageStore._current_vehicle()):
+		_status.text = "No jobs to export."
+		return
+	if _on_ios():
+		var stamped := "user://oil-due-history-%s.pdf" % _file_stamp()
+		if not GarageStore.write_history_pdf(stamped) or not GarageStore.write_history_pdf(HISTORY_PDF_PATH):
+			_status.text = "Couldn't save the PDF."
+			return
+		_status.text = "PDF saved. %s" % FILES_HINT
+		return
+	if not GarageStore.write_history_pdf(HISTORY_PDF_PATH):
+		_status.text = "Couldn't save the PDF."
+		return
+	_status.text = "PDF saved. %s" % FILES_HINT
+	_dialog_mode = DialogMode.SAVE_PDF
+	_io_dialog.title = "Export PDF"
+	_io_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	_io_dialog.filters = PackedStringArray(["*.pdf ; PDF"])
+	_io_dialog.popup_centered()
+
+
 func _on_backup_zip_pressed() -> void:
 	if _on_ios():
 		var stamped := "user://oil-due-backup-%s.zip" % _file_stamp()
@@ -257,6 +282,12 @@ func _on_io_chosen(path: String) -> void:
 	if _dialog_mode == DialogMode.SAVE_CSV:
 		if GarageStore.write_export_csv(path):
 			_status.text = "Export saved. %s" % FILES_HINT
+		return
+	if _dialog_mode == DialogMode.SAVE_PDF:
+		if GarageStore.write_history_pdf(path):
+			_status.text = "PDF saved. %s" % FILES_HINT
+		else:
+			_status.text = "Couldn't save the PDF."
 		return
 	if _dialog_mode == DialogMode.SAVE_ZIP:
 		if GarageStore.write_backup_zip(path):
@@ -346,7 +377,7 @@ func _open_file_pick(kind: PickKind) -> void:
 	var names := _user_files(ext)
 	_file_empty.visible = names.is_empty()
 	if kind == PickKind.CSV:
-		_file_empty.text = "Put a CSV in Files, On My iPhone, Oil Due."
+		_file_empty.text = "In Vehicle Maintenance Tracker, export a CSV. In Files, put it in On My iPhone → Oil Due. Photos are not in that CSV."
 	else:
 		_file_empty.text = "Put a zip in Files, On My iPhone, Oil Due."
 	_file_scroll.visible = not names.is_empty()
