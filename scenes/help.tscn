@@ -95,7 +95,7 @@ text = "Import: in VMT, export CSV, then Files → On My iPhone → Oil Due."
 [node name="Line4" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2
 autowrap_mode = 3
-text = "Backup zip is how dates survive a new phone."
+text = "Your iPhone backup usually carries Oil Due to a new phone. For extra safety, make a Backup zip and move it to iCloud Drive in Files."
 
 [node name="Line5" type="Label" parent="Margin/PageHost/Column/HelpScroll/GroupHelp/HelpText"]
 layout_mode = 2

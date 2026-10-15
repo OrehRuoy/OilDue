@@ -40,37 +40,37 @@ func _apply_price() -> void:
 	if live != "":
 		_show_price(live)
 		%BuyButton.disabled = false
-		if _status.text == "Loading price…":
+		if _status.text == tr("Loading price…"):
 			_status.text = ""
 		return
 	_show_loading_price()
 	%BuyButton.disabled = true
 	var err := Purchase.last_products_error.strip_edges()
 	if err != "":
-		_status.text = err
+		_status.text = tr(err)
 	else:
-		_status.text = "Loading price…"
+		_status.text = tr("Loading price…")
 
 
 func _show_loading_price() -> void:
 	_price.text = "…"
-	%BuyButton.text = "Unlock Oil Due"
+	%BuyButton.text = tr("Unlock Oil Due")
 
 
 func _show_price(price: String) -> void:
 	_price.text = price
-	%BuyButton.text = "Unlock Oil Due — %s" % price
+	%BuyButton.text = tr("Unlock Oil Due — %s") % price
 
 
 func _on_buy_pressed() -> void:
 	if _busy:
 		return
 	if Purchase._ios_storekit() and Purchase.localized_price() == "":
-		_status.text = Purchase.last_products_error if Purchase.last_products_error != "" else "Loading price…"
+		_status.text = tr(Purchase.last_products_error) if Purchase.last_products_error != "" else tr("Loading price…")
 		return
 	_busy = true
 	%BuyButton.disabled = true
-	_status.text = "Contacting the App Store…" if Purchase._ios_storekit() else ""
+	_status.text = tr("Contacting the App Store…") if Purchase._ios_storekit() else ""
 	Purchase.buy()
 	if GarageStore.is_unlocked():
 		_go_unlocked()
@@ -79,14 +79,14 @@ func _on_buy_pressed() -> void:
 		return
 	_busy = false
 	%BuyButton.disabled = false
-	_status.text = Purchase.last_message if Purchase.last_message != "" else "Purchase didn't complete."
+	_status.text = tr(Purchase.last_message) if Purchase.last_message != "" else tr("Purchase didn't complete.")
 
 
 func _on_restore_pressed() -> void:
 	if _busy:
 		return
 	_busy = true
-	_status.text = "Restoring…" if Purchase._ios_storekit() else ""
+	_status.text = tr("Restoring…") if Purchase._ios_storekit() else ""
 	Purchase.restore()
 	if GarageStore.is_unlocked():
 		_go_unlocked()
@@ -94,7 +94,7 @@ func _on_restore_pressed() -> void:
 	if Purchase._ios_storekit():
 		return
 	_busy = false
-	_status.text = Purchase.last_message if Purchase.last_message != "" else "Nothing to restore."
+	_status.text = tr(Purchase.last_message) if Purchase.last_message != "" else tr("Nothing to restore.")
 
 
 func _on_purchase_finished(ok: bool) -> void:
@@ -103,7 +103,7 @@ func _on_purchase_finished(ok: bool) -> void:
 		_go_unlocked()
 		return
 	_apply_price()
-	_status.text = Purchase.last_message if Purchase.last_message != "" else "Purchase didn't complete."
+	_status.text = tr(Purchase.last_message) if Purchase.last_message != "" else tr("Purchase didn't complete.")
 
 
 func _on_back_pressed() -> void:

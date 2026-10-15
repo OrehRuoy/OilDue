@@ -8,6 +8,7 @@ const TEMP_ZIP := "user://test-day9.zip"
 
 
 func _ready() -> void:
+	TranslationServer.set_locale("en")
 	var fail := _run()
 	if fail == "":
 		_label.text = "PASS"

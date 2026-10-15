@@ -21,8 +21,8 @@ func _ready() -> void:
 		vehicle = GarageStore.primary_vehicle()
 	var current_name := str(vehicle.get("name", "")).strip_edges()
 	if current_name == "":
-		current_name = "this car"
-	_photos.text = "CSV does not include photos."
+		current_name = tr("this car")
+	_photos.text = tr("CSV does not include photos.")
 	_merge.custom_minimum_size = Vector2(0, 44)
 	_merge.pressed.connect(_on_merge_pressed)
 	%CancelButton.pressed.connect(_on_cancel_pressed)
@@ -37,8 +37,8 @@ func _ready() -> void:
 		var err := str(parsed.get("error", "")).strip_edges()
 		if err == "":
 			err = "Couldn't read this file. Email it to support and log by hand for now."
-		_error.text = err
-		_merge.text = "Add these jobs to %s" % current_name
+		_error.text = tr(err)
+		_merge.text = tr("Add these jobs to %s") % current_name
 		_merge.disabled = true
 		return
 
@@ -50,21 +50,21 @@ func _ready() -> void:
 	_warning.text = _name_warning(parsed, current_name)
 	var jobs: Array = parsed.get("jobs", [])
 	if jobs.size() > 0:
-		_merge.text = "Add these jobs to %s" % current_name
+		_merge.text = tr("Add these jobs to %s") % current_name
 	else:
-		_merge.text = "Update %s from this file" % current_name
+		_merge.text = tr("Update %s from this file") % current_name
 	var can_write := _can_write(parsed) and not vehicle.is_empty()
 	_merge.disabled = not can_write
 	if not can_write and _error.text == "":
-		_error.text = "No jobs to import."
+		_error.text = tr("No jobs to import.")
 
 
 func _kind_line(kind: String) -> String:
 	if kind == "vmt_maintenance":
-		return "Vehicle Maintenance Tracker jobs"
+		return tr("Vehicle Maintenance Tracker jobs")
 	if kind == "vmt_equipment":
-		return "Vehicle Maintenance Tracker car"
-	return "Spreadsheet"
+		return tr("Vehicle Maintenance Tracker car")
+	return tr("Spreadsheet")
 
 
 func _summary_line(parsed: Dictionary) -> String:
@@ -73,15 +73,15 @@ func _summary_line(parsed: Dictionary) -> String:
 	var vehicles: Array = parsed.get("vehicles", [])
 	if kind == "vmt_maintenance":
 		if jobs.size() == 1:
-			return "1 job"
-		return "%d jobs" % jobs.size()
+			return tr("1 job")
+		return tr("%d jobs") % jobs.size()
 	if kind == "vmt_equipment":
 		if vehicles.size() == 1:
-			return "1 car"
-		return "%d cars" % vehicles.size()
-	var car_bit := "1 car" if vehicles.size() == 1 else "%d cars" % vehicles.size()
-	var job_bit := "1 job" if jobs.size() == 1 else "%d jobs" % jobs.size()
-	return "%s, %s" % [car_bit, job_bit]
+			return tr("1 car")
+		return tr("%d cars") % vehicles.size()
+	var car_bit := tr("1 car") if vehicles.size() == 1 else tr("%d cars") % vehicles.size()
+	var job_bit := tr("1 job") if jobs.size() == 1 else tr("%d jobs") % jobs.size()
+	return tr("%s, %s") % [car_bit, job_bit]
 
 
 func _sample_block(parsed: Dictionary) -> String:
@@ -95,10 +95,10 @@ func _sample_block(parsed: Dictionary) -> String:
 		var shown := DueMath.format_display_date(str(job.get("date", "")))
 		if shown == "":
 			shown = str(job.get("date", ""))
-		lines.append("%s · %s · %s mi · %s" % [
+		lines.append("%s · %s · %s · %s" % [
 			shown,
-			str(job.get("label", "")),
-			DueMath.format_miles(int(job.get("miles", 0))),
+			tr(str(job.get("label", ""))),
+			DueMath.format_distance(int(job.get("miles", 0))),
 			DueMath.format_cents(int(job.get("cost_cents", 0))),
 		])
 	if not lines.is_empty():
@@ -124,9 +124,9 @@ func _sample_block(parsed: Dictionary) -> String:
 
 func _skipped_line(skipped: int) -> String:
 	if skipped == 1:
-		return "Skipped 1 row with no date or job name."
+		return tr("Skipped 1 row with no date or job name.")
 	if skipped > 1:
-		return "Skipped %d rows with no date or job name." % skipped
+		return tr("Skipped %d rows with no date or job name.") % skipped
 	return ""
 
 
@@ -145,7 +145,7 @@ func _name_warning(parsed: Dictionary, current_name: String) -> String:
 	var incoming := _incoming_name(parsed)
 	if incoming == "" or incoming == current_name:
 		return ""
-	return "This file is %s. Merge will apply it onto %s." % [incoming, current_name]
+	return tr("This file is %s. Merge will apply it onto %s.") % [incoming, current_name]
 
 
 func _incoming_name(parsed: Dictionary) -> String:
@@ -162,7 +162,7 @@ func _incoming_name(parsed: Dictionary) -> String:
 
 func _on_merge_pressed() -> void:
 	if not GarageStore.import_merge(GarageStore.pending_import):
-		_error.text = "Couldn't merge onto this car."
+		_error.text = tr("Couldn't merge onto this car.")
 		return
 	GarageStore.pending_import = {}
 	get_tree().change_scene_to_file("res://scenes/garage.tscn")

@@ -4,6 +4,7 @@ const SpendRollup = preload("res://scripts/spend_rollup.gd")
 
 
 func _ready() -> void:
+	TranslationServer.set_locale("en")
 	var fail := _run()
 	if fail == "":
 		%Result.text = "PASS"

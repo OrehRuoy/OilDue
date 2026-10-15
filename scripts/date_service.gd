@@ -9,7 +9,7 @@ const COLOR_CARD := Color("#2A2622")
 const COLOR_TEXT := Color("#F4EFE6")
 const COLOR_MUTED := Color("#9A9388")
 const COLOR_RING := Color("#FF453A")
-const WEEKDAYS := ["S", "M", "T", "W", "T", "F", "S"]
+const WEEKDAYS := ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
 var last_ymd := ""
 var _before := ""
@@ -158,7 +158,7 @@ func _make_sheet() -> Control:
 	week.add_theme_constant_override("separation", 0)
 	for name in WEEKDAYS:
 		var w := Label.new()
-		w.text = name
+		w.text = tr(name)
 		w.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		w.add_theme_font_size_override("font_size", 13)
@@ -185,14 +185,14 @@ func _make_sheet() -> Control:
 	actions.add_theme_constant_override("separation", 12)
 	var today := Button.new()
 	today.custom_minimum_size = Vector2(0, 52)
-	today.text = "Today"
+	today.text = tr("Today")
 	today.pressed.connect(_on_today_pressed)
 	var grow := Control.new()
 	grow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var done := Button.new()
 	done.custom_minimum_size = Vector2(120, 52)
 	done.theme_type_variation = &"CreamButton"
-	done.text = "Done"
+	done.text = tr("Done")
 	done.pressed.connect(_on_done_pressed)
 	actions.add_child(today)
 	actions.add_child(grow)
@@ -207,7 +207,7 @@ func _make_sheet() -> Control:
 
 func _rebuild_grid() -> void:
 	if _month_label != null:
-		_month_label.text = "%s %d" % [DueMath.MONTH_ABBR[_view_month], _view_year]
+		_month_label.text = "%s %d" % [tr(DueMath.MONTH_ABBR[_view_month]), _view_year]
 	var sel := DueMath.parse_ymd(last_ymd)
 	for i in range(42):
 		var btn: Button = _day_buttons[i]

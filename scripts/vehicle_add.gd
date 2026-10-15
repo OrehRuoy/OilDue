@@ -52,11 +52,11 @@ func _apply_first_run_chrome() -> void:
 	%Back.visible = not _first_run
 	%Subline.visible = _first_run
 	if _first_run:
-		%Title.text = "Welcome to Oil Due"
-		%AddButton.text = "Save car"
+		%Title.text = tr("Welcome to Oil Due")
+		%AddButton.text = tr("Save car")
 	else:
-		%Title.text = "Add car"
-		%AddButton.text = "Add car"
+		%Title.text = tr("Add car")
+		%AddButton.text = tr("Add car")
 
 
 func _arm_make_model_fields() -> void:
@@ -73,15 +73,15 @@ func _lock_pick_field(field: LineEdit) -> void:
 
 
 func _open_make_pick() -> void:
-	PickSheet.present(self, "Make", VehicleCatalog.makes(), _make_edit.text, _on_make_picked)
+	PickSheet.present(self, tr("Make"), VehicleCatalog.makes(), _make_edit.text, _on_make_picked)
 
 
 func _open_model_pick() -> void:
 	var make_s := _make_edit.text.strip_edges()
 	if make_s == "":
-		PickSheet.present_notice(self, "Model", "Pick make first")
+		PickSheet.present_notice(self, tr("Model"), tr("Pick make first"))
 		return
-	PickSheet.present(self, "Model", VehicleCatalog.models(make_s), _model_edit.text, _on_model_picked)
+	PickSheet.present(self, tr("Model"), VehicleCatalog.models(make_s), _model_edit.text, _on_model_picked)
 
 
 func _on_make_picked(value: String) -> void:
@@ -168,15 +168,15 @@ func _on_remove_photo() -> void:
 func _on_photo_picked(src_path: String) -> void:
 	var path := src_path.strip_edges()
 	if path == "":
-		_error.text = "Couldn't read that photo."
+		_error.text = tr("Couldn't read that photo.")
 		return
 	_pending_photo = path
 	_fill_photo_hole(path)
-	%AddPhoto.text = "Change photo"
+	%AddPhoto.text = tr("Change photo")
 
 
-func _on_photo_failed(_message: String) -> void:
-	_error.text = "Couldn't read that photo."
+func _on_photo_failed(message: String) -> void:
+	_error.text = tr(message) if message.strip_edges() != "" else tr("Couldn't read that photo.")
 
 
 func _on_add_pressed() -> void:
@@ -184,13 +184,13 @@ func _on_add_pressed() -> void:
 	var make_s := _make_edit.text.strip_edges()
 	var model_s := _model_edit.text.strip_edges()
 	if make_s == "" or model_s == "":
-		_error.text = "Pick make and model."
+		_error.text = tr("Pick make and model.")
 		return
 	var year_raw := _year_edit.text.strip_edges()
 	var year := 0
 	if year_raw != "":
 		if not year_raw.is_valid_int():
-			_error.text = "Enter year as a whole number."
+			_error.text = tr("Enter year as a whole number.")
 			return
 		year = int(year_raw)
 	var name_s := _name_edit.text.strip_edges()
@@ -199,20 +199,22 @@ func _on_add_pressed() -> void:
 	if miles_raw == "":
 		miles = 0
 	elif not miles_raw.is_valid_int():
-		_error.text = "Enter miles as a whole number."
+		_error.text = tr("Enter kilometers as a whole number.") if DueMath.distance_unit() == "km" else tr("Enter miles as a whole number.")
 		return
 	else:
-		miles = int(miles_raw)
+		miles = DueMath.display_to_miles(int(miles_raw))
 		if miles < 0:
-			_error.text = "Miles cannot be negative."
+			_error.text = tr("Kilometers cannot be negative.") if DueMath.distance_unit() == "km" else tr("Miles cannot be negative.")
 			return
-	var with_oil := not _first_run
-	if not GarageStore.add_vehicle(year, make_s, model_s, name_s, miles, with_oil):
-		_error.text = "Couldn't add this car."
+	if not GarageStore.add_vehicle(year, make_s, model_s, name_s, miles, true):
+		_error.text = tr("Couldn't add this car.")
 		return
 	if _pending_photo != "":
 		var vehicle_id := GarageStore.selected_vehicle_id.strip_edges()
 		var dest := "v_%s.jpg" % vehicle_id
 		if PhotoService.save_jpeg(_pending_photo, dest):
 			GarageStore.set_vehicle_photo(dest)
+	if _first_run:
+		get_tree().change_scene_to_file("res://scenes/last_oil.tscn")
+		return
 	get_tree().change_scene_to_file("res://scenes/garage.tscn")

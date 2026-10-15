@@ -26,10 +26,13 @@ func _ready() -> void:
 	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
 	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
 	var label := str(service.get("label", "")).strip_edges()
-	_title.text = label if label != "" else "History"
+	_title.text = tr(label) if label != "" else tr("History")
 	_title_icon.texture = ServiceIcons.texture_for(str(service.get("type_id", "")))
 	_title_icon.modulate = Color.WHITE
-	_miles_edit.text = str(_as_int(service.get("interval_miles"), 0))
+	_miles_edit.text = str(DueMath.miles_to_display(_as_int(service.get("interval_miles"), 0)))
+	var miles_cap := _miles_edit.get_parent().get_child(0)
+	if miles_cap is Label:
+		miles_cap.text = tr("Interval kilometers") if DueMath.distance_unit() == "km" else tr("Interval miles")
 	_months_edit.text = str(_as_int(service.get("interval_months"), 0))
 	_error.text = ""
 	_build_rows()
@@ -108,7 +111,7 @@ func _make_empty_row() -> Control:
 	panel.add_theme_stylebox_override("panel", style)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var label := Label.new()
-	label.text = "No jobs yet"
+	label.text = tr("No jobs yet")
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", COLOR_SECONDARY)
 	label.add_theme_font_size_override("font_size", 15)
@@ -158,7 +161,7 @@ func _make_row(job: Dictionary, index: int, count: int) -> Control:
 	var cost_cents := int(job.get("cost_cents", 0))
 	var cost_bit := "—" if cost_cents == 0 else DueMath.format_cents(cost_cents)
 	var sub_label := Label.new()
-	sub_label.text = "%s mi · %s" % [_format_miles(int(job.get("miles", 0))), cost_bit]
+	sub_label.text = "%s · %s" % [DueMath.format_distance(int(job.get("miles", 0))), cost_bit]
 	sub_label.add_theme_color_override("font_color", COLOR_MUTED)
 	sub_label.add_theme_font_size_override("font_size", 13)
 	sub_label.clip_text = false
@@ -214,12 +217,13 @@ func _on_save_intervals_pressed() -> void:
 	var miles := _parse_interval(_miles_edit.text)
 	var months := _parse_interval(_months_edit.text)
 	if not bool(miles["ok"]) or not bool(months["ok"]):
-		_error.text = "Enter intervals as whole numbers, or leave blank."
+		_error.text = tr("Enter intervals as whole numbers, or leave blank.")
 		return
-	if not GarageStore.update_service_intervals(int(miles["value"]), int(months["value"])):
-		_error.text = "Could not save intervals."
+	var stored_miles := DueMath.display_to_miles(int(miles["value"]))
+	if not GarageStore.update_service_intervals(stored_miles, int(months["value"])):
+		_error.text = tr("Could not save intervals.")
 		return
-	_miles_edit.text = str(int(miles["value"]))
+	_miles_edit.text = str(DueMath.miles_to_display(stored_miles))
 	_months_edit.text = str(int(months["value"]))
 
 
@@ -231,10 +235,10 @@ func _on_delete_pressed() -> void:
 		label = "this service"
 	ConfirmSheet.present(
 		self,
-		"Delete service?",
-		"This removes %s and its jobs." % label,
-		"Keep",
-		"Delete",
+		tr("Delete service?"),
+		tr("This removes %s and its jobs.") % tr(label),
+		tr("Keep"),
+		tr("Delete"),
 		_on_delete_confirmed
 	)
 

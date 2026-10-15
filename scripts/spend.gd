@@ -11,7 +11,7 @@ func _ready() -> void:
 	var vehicle := GarageStore._current_vehicle()
 	var name := str(vehicle.get("name", "")).strip_edges()
 	if name == "":
-		name = "This car"
+		name = tr("This car")
 	%CarLabel.text = name
 	var roll := SpendRollup.rollup(vehicle)
 	var rows: Array = roll.get("rows", [])
@@ -31,7 +31,7 @@ func _ready() -> void:
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 12)
 		var left := Label.new()
-		left.text = str(row.get("label", ""))
+		left.text = tr(str(row.get("label", "")))
 		left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		left.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		left.add_theme_color_override("font_color", COLOR_PRIMARY)

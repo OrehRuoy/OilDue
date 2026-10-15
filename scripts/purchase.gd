@@ -42,6 +42,7 @@ func restore() -> void:
 		return
 	last_ok = false
 	last_message = "Nothing to restore in the editor."
+	purchase_finished.emit(false)
 
 
 func localized_price() -> String:

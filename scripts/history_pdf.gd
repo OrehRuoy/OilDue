@@ -21,7 +21,7 @@ static func _lines(vehicle: Dictionary) -> PackedStringArray:
 	var lines: PackedStringArray = PackedStringArray()
 	var name := str(vehicle.get("name", "")).strip_edges()
 	if name == "":
-		name = "Car"
+		name = TranslationServer.translate("Car")
 	lines.append(name)
 	var spec := _spec(vehicle)
 	if spec != "":
@@ -33,15 +33,15 @@ static func _lines(vehicle: Dictionary) -> PackedStringArray:
 		var shown := DueMath.format_display_date(str(job.get("date", "")))
 		if shown == "":
 			shown = str(job.get("date", ""))
-		var miles := DueMath.format_miles(int(job.get("miles", 0)))
+		var miles := DueMath.format_distance(int(job.get("miles", 0)))
 		var label := _label(services, str(job.get("service_id", "")))
 		if label == "":
-			label = "Job"
+			label = TranslationServer.translate("Job")
 		var cents := int(job.get("cost_cents", 0))
 		var cost := ""
 		if cents > 0:
 			cost = "  " + DueMath.format_cents(cents)
-		lines.append("%s  %s mi  %s%s" % [shown, miles, label, cost])
+		lines.append("%s  %s  %s%s" % [shown, miles, label, cost])
 		var notes := str(job.get("notes", "")).replace("\n", " ").replace("\r", " ").strip_edges()
 		if notes.length() > NOTE_MAX:
 			notes = notes.substr(0, NOTE_MAX)
@@ -88,5 +88,5 @@ static func _label(services: Array, service_id: String) -> String:
 			continue
 		var service: Dictionary = item
 		if str(service.get("id", "")) == service_id:
-			return str(service.get("label", "")).strip_edges()
+			return TranslationServer.translate(str(service.get("label", "")).strip_edges())
 	return ""

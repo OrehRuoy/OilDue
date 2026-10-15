@@ -22,18 +22,21 @@ const STATUS_ORDER := {
 	"Overdue": 0,
 	"Due soon": 1,
 	"OK": 2,
+	"Not set": 3,
 }
 
 const STATUS_LABELS := {
 	"overdue": "Overdue",
 	"due_soon": "Due soon",
 	"ok": "OK",
+	"not_set": "Not set",
 }
 
 const STATUS_COLOR := {
 	"Overdue": Color("#FF453A"),
 	"Due soon": Color("#FF9F0A"),
 	"OK": Color("#9A9388"),
+	"Not set": Color("#9A9388"),
 }
 
 @onready var _car_strip: ScrollContainer = %CarStrip
@@ -61,6 +64,7 @@ const STATUS_COLOR := {
 var _miles: int = 0
 var _focus_service_id := ""
 var _leaving := false
+var _perm_banner: VBoxContainer
 
 
 func _ready() -> void:
@@ -84,6 +88,7 @@ func _ready() -> void:
 	_show_import_notice()
 	NotifyService.reschedule()
 	_maybe_show_log_tip()
+	_maybe_ask_oil_remind()
 
 
 func _current_display_vehicle() -> Dictionary:
@@ -108,6 +113,43 @@ func _refresh_from_store() -> void:
 	_fill_spend(vehicle)
 	_spend_row.visible = true
 	_build_rows(vehicle)
+	_refresh_permission_banner()
+
+
+func _refresh_permission_banner() -> void:
+	var needed := false
+	if not NotifyService.has_os_permission():
+		for item in GarageStore.data.get("vehicles", []):
+			if typeof(item) != TYPE_DICTIONARY:
+				continue
+			for service_item in item.get("services", []):
+				if typeof(service_item) == TYPE_DICTIONARY and bool(service_item.get("notify", false)):
+					needed = true
+					break
+			if needed:
+				break
+	if not needed:
+		if _perm_banner != null:
+			_perm_banner.visible = false
+		return
+	if _perm_banner == null:
+		_perm_banner = VBoxContainer.new()
+		_perm_banner.add_theme_constant_override("separation", 8)
+		var label := Label.new()
+		label.text = tr("Reminders are off in iPhone Settings")
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_color_override("font_color", COLOR_SECONDARY)
+		var button := Button.new()
+		button.text = tr("Open Settings")
+		button.custom_minimum_size = Vector2(0, 48)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.pressed.connect(NotifyService.open_settings)
+		_perm_banner.add_child(label)
+		_perm_banner.add_child(button)
+		var column := _import_notice.get_parent()
+		column.add_child(_perm_banner)
+		column.move_child(_perm_banner, _import_notice.get_index() + 1)
+	_perm_banner.visible = true
 
 
 func _maybe_show_log_tip() -> void:
@@ -115,13 +157,71 @@ func _maybe_show_log_tip() -> void:
 		return
 	ConfirmSheet.present(
 		self,
-		"When you do a service, tap Log.",
+		tr("When you do a service, tap Log."),
 		"",
-		"Got it",
+		tr("Got it"),
 		"",
 		Callable(),
 		_on_log_tip_dismissed
 	)
+
+
+func _maybe_ask_oil_remind() -> void:
+	if bool(GarageStore.data.get("oil_remind_asked", false)):
+		return
+	var vehicles := GarageStore.vehicles_list()
+	if vehicles.is_empty() or typeof(vehicles[0]) != TYPE_DICTIONARY:
+		return
+	var vehicle: Dictionary = vehicles[0]
+	var oil: Dictionary = {}
+	for item in vehicle.get("services", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var service: Dictionary = item
+		if str(service.get("type_id", "")) == "oil_change":
+			oil = service
+			break
+	if oil.is_empty() or bool(oil.get("notify", false)):
+		return
+	if DueMath.parse_ymd(str(oil.get("next_date", ""))).is_empty():
+		return
+	ConfirmSheet.present(
+		self,
+		tr("Get a reminder the morning your oil is due?"),
+		"",
+		tr("Not now"),
+		tr("Remind me"),
+		_on_oil_remind_yes,
+		_on_oil_remind_no
+	)
+
+
+func _on_oil_remind_no() -> void:
+	GarageStore.data["oil_remind_asked"] = true
+	GarageStore.save()
+
+
+func _on_oil_remind_yes() -> void:
+	GarageStore.data["oil_remind_asked"] = true
+	GarageStore.selected_vehicle_id = str(GarageStore.vehicles_list()[0].get("id", ""))
+	for item in GarageStore._current_vehicle().get("services", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		if str(item.get("type_id", "")) == "oil_change":
+			GarageStore.selected_service_id = str(item.get("id", ""))
+			break
+	GarageStore.set_service_notify(true)
+	if not NotifyService.permission_resolved.is_connected(_on_oil_permission):
+		NotifyService.permission_resolved.connect(_on_oil_permission)
+	NotifyService.ensure_permission()
+
+
+func _on_oil_permission(ok: bool) -> void:
+	if NotifyService.permission_resolved.is_connected(_on_oil_permission):
+		NotifyService.permission_resolved.disconnect(_on_oil_permission)
+	if ok:
+		return
+	GarageStore.set_service_notify(false)
 
 
 func _on_log_tip_dismissed() -> void:
@@ -249,7 +349,7 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	name_label.max_lines_visible = 3
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_SECONDARY)
-	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.custom_minimum_size = Vector2(TILE, 36)
 
 	col.add_child(panel)
@@ -319,7 +419,7 @@ func _make_add_tile() -> Control:
 	panel.add_child(pad)
 
 	var name_label := Label.new()
-	name_label.text = "Add"
+	name_label.text = tr("Add")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.clip_text = true
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -447,12 +547,15 @@ func _fill_card(vehicle: Dictionary) -> void:
 	var stacked := nick.contains("\n")
 	_card_spec.text = "" if stacked else spec
 	_card_spec.visible = not stacked and spec != ""
-	_miles_val.text = _format_miles(_miles)
+	_miles_val.text = DueMath.format_distance(_miles)
+	var miles_cap := _miles_val.get_parent().get_child(0)
+	if miles_cap is Label:
+		miles_cap.text = tr("KM") if DueMath.distance_unit() == "km" else tr("MI")
 	var rows := _collect_rows(vehicle)
-	_add_service.text = "Add another service" if rows.size() >= 1 else "Add service"
+	_add_service.text = tr("Add another service") if rows.size() >= 1 else tr("Add service")
 	if rows.is_empty():
 		_focus_service_id = ""
-		_due_cap.text = "OIL"
+		_due_cap.text = tr("OIL")
 		_due_val.text = "—"
 		_style_chip("OK")
 		_log_button.visible = false
@@ -461,20 +564,23 @@ func _fill_card(vehicle: Dictionary) -> void:
 	_focus_service_id = str(top.get("service_id", ""))
 	var type_id := str(top.get("type_id", ""))
 	if type_id == "oil_change":
-		_due_cap.text = "OIL"
-		_log_button.text = "Log oil"
+		_due_cap.text = tr("OIL")
+		_log_button.text = tr("Log oil")
 	else:
-		var label := str(top.get("name", "")).strip_edges().to_upper()
-		_due_cap.text = label if label != "" else "DUE"
-		_log_button.text = "Log this service"
-	var shown := DueMath.format_display_date(str(top.get("next_date", "")))
-	_due_val.text = shown if shown != "" else "—"
-	_style_chip(str(top.get("status", "OK")))
+		var label := tr(str(top.get("name", "")).strip_edges())
+		_due_cap.text = label.to_upper() if label != "" else tr("DUE")
+		_log_button.text = tr("Log this service")
+	var status_name := str(top.get("status", "OK"))
+	if status_name == "Not set":
+		_due_val.text = tr("Not set")
+	else:
+		_due_val.text = _hero_countdown(top, int(vehicle.get("odometer", 0)))
+	_style_chip(status_name)
 	_log_button.visible = _focus_service_id != ""
 
 
 func _style_chip(status: String) -> void:
-	_due_chip.text = status
+	_due_chip.text = tr(status)
 	var style := StyleBoxFlat.new()
 	style.set_corner_radius_all(10)
 	style.content_margin_left = 10
@@ -483,7 +589,7 @@ func _style_chip(status: String) -> void:
 	style.content_margin_bottom = 4
 	if status == "Overdue":
 		style.bg_color = COLOR_ACCENT
-		_due_chip.add_theme_color_override("font_color", COLOR_PRIMARY)
+		_due_chip.add_theme_color_override("font_color", Color("#1A1714"))
 	elif status == "Due soon":
 		style.bg_color = COLOR_SURFACE
 		style.border_width_left = 1
@@ -511,14 +617,22 @@ func _collect_rows(vehicle: Dictionary) -> Array:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		var service: Dictionary = item
+		var next_date := str(service.get("next_date", "")).strip_edges()
+		var next_miles := _as_int(service.get("next_miles"), 0)
+		var miles_left := 1000000000
+		if next_miles > 0:
+			miles_left = next_miles - odometer
+		var sort_date := next_date if not DueMath.parse_ymd(next_date).is_empty() else "9999-99-99"
 		rows.append({
 			"name": str(service.get("label", "")),
 			"status": _status_for(service, odometer, today),
 			"service_id": str(service.get("id", "")),
 			"vehicle_id": vehicle_id,
 			"type_id": str(service.get("type_id", "")),
-			"next_date": str(service.get("next_date", "")),
-			"next_miles": _as_int(service.get("next_miles"), 0),
+			"next_date": next_date,
+			"next_miles": next_miles,
+			"sort_date": sort_date,
+			"miles_left": miles_left,
 		})
 	rows.sort_custom(_status_sort)
 	return rows
@@ -541,12 +655,12 @@ func _due_subtitle(next_date: String, next_miles: int) -> String:
 	var has_date := shown != ""
 	var has_miles := next_miles > 0
 	if has_date and has_miles:
-		return "Due %s · %s mi" % [shown, _format_miles(next_miles)]
+		return tr("Due %s · %s") % [shown, DueMath.format_distance(next_miles)]
 	if has_date:
-		return "Due %s" % shown
+		return tr("Due %s") % shown
 	if has_miles:
-		return "Due %s mi" % _format_miles(next_miles)
-	return "Log a first job"
+		return tr("Due %s") % DueMath.format_distance(next_miles)
+	return tr("Log a first job")
 
 
 func _status_for(service: Dictionary, odometer: int, today: String) -> String:
@@ -572,8 +686,42 @@ func _as_int(value: Variant, fallback: int) -> int:
 	return fallback
 
 
+func _hero_countdown(row: Dictionary, odometer: int) -> String:
+	var parts: PackedStringArray = PackedStringArray()
+	var next_date := str(row.get("next_date", "")).strip_edges()
+	if not DueMath.parse_ymd(next_date).is_empty():
+		var days := DueMath.days_until(GarageStore.today_ymd(), next_date)
+		if days < 0:
+			var overdue_days := -days
+			parts.append(tr("1 day overdue") if overdue_days == 1 else tr("%d days overdue") % overdue_days)
+		elif days == 0:
+			parts.append(tr("Due today"))
+		elif days == 1:
+			parts.append(tr("1 day left"))
+		else:
+			parts.append(tr("%d days left") % days)
+	var next_miles := int(row.get("next_miles", 0))
+	if next_miles > 0:
+		var left := next_miles - odometer
+		if left < 0:
+			parts.append(tr("%s over") % DueMath.format_distance(-left))
+		else:
+			parts.append(tr("%s left") % DueMath.format_distance(left))
+	if parts.is_empty():
+		return "—"
+	return " · ".join(parts)
+
+
 func _status_sort(a: Dictionary, b: Dictionary) -> bool:
-	return int(STATUS_ORDER.get(str(a["status"]), 9)) < int(STATUS_ORDER.get(str(b["status"]), 9))
+	var order_a := int(STATUS_ORDER.get(str(a["status"]), 9))
+	var order_b := int(STATUS_ORDER.get(str(b["status"]), 9))
+	if order_a != order_b:
+		return order_a < order_b
+	var date_a := str(a.get("sort_date", "9999-99-99"))
+	var date_b := str(b.get("sort_date", "9999-99-99"))
+	if date_a != date_b:
+		return date_a < date_b
+	return int(a.get("miles_left", 0)) < int(b.get("miles_left", 0))
 
 
 func _make_row(row: Dictionary, index: int, count: int) -> Control:
@@ -623,7 +771,7 @@ func _make_row(row: Dictionary, index: int, count: int) -> Control:
 	titles.add_theme_constant_override("separation", 1)
 
 	var name_label := Label.new()
-	name_label.text = service_name
+	name_label.text = tr(service_name)
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_PRIMARY)
 	name_label.add_theme_font_size_override("font_size", 17)
@@ -638,7 +786,7 @@ func _make_row(row: Dictionary, index: int, count: int) -> Control:
 	titles.add_child(sub_label)
 
 	var status_label := Label.new()
-	status_label.text = status
+	status_label.text = tr(status)
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -688,7 +836,11 @@ func _row_style(index: int, count: int) -> StyleBoxFlat:
 
 
 func _on_update_miles_pressed() -> void:
-	_miles_edit.text = str(_miles)
+	var title := _miles_edit.get_parent().get_child(0)
+	if title is Label:
+		title.text = tr("Update kilometers") if DueMath.distance_unit() == "km" else tr("Update miles")
+	_miles_edit.placeholder_text = tr("Kilometers") if DueMath.distance_unit() == "km" else tr("Miles")
+	_miles_edit.text = str(DueMath.miles_to_display(_miles))
 	_miles_popup.visible = true
 	_miles_edit.grab_focus()
 
@@ -713,7 +865,7 @@ func _on_miles_set() -> void:
 	if raw.is_valid_int():
 		var parsed := int(raw)
 		if parsed >= 0:
-			GarageStore.set_odometer(parsed)
+			GarageStore.set_odometer(DueMath.display_to_miles(parsed))
 			_refresh_from_store()
 	_miles_popup.visible = false
 

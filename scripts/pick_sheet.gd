@@ -84,7 +84,7 @@ func setup(
 	%Search.visible = allow_other
 	%UseThis.visible = false
 	%ListScroll.visible = allow_other
-	%CancelButton.text = "OK" if not allow_other else "Cancel"
+	%CancelButton.text = tr("OK") if not allow_other else tr("Cancel")
 	_pad_home_indicator()
 	%Search.text_changed.connect(_on_search_changed)
 	%UseThis.pressed.connect(_on_use_this)
@@ -126,7 +126,7 @@ func _rebuild() -> void:
 		if i < count - 1 or _allow_other:
 			rows.add_child(_hairline())
 	if _allow_other:
-		rows.add_child(_make_row("Other…", true))
+		rows.add_child(_make_row(tr("Other…"), true))
 
 
 func _make_row(label: String, is_other: bool) -> Button:
@@ -172,7 +172,7 @@ func _on_other() -> void:
 	if typed != "":
 		_pick(typed)
 		return
-	%Search.placeholder_text = "Type a custom name"
+	%Search.placeholder_text = tr("Type a custom name")
 	%Search.grab_focus()
 
 

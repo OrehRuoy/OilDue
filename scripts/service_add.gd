@@ -26,6 +26,9 @@ func _ready() -> void:
 	%AddButton.visible = false
 	_apply_selection(-1)
 	_error.text = ""
+	var miles_cap := _miles_edit.get_parent().get_child(0)
+	if miles_cap is Label:
+		miles_cap.text = tr("Interval kilometers") if DueMath.distance_unit() == "km" else tr("Interval miles")
 	PanScroll.wire_fields(_custom_block)
 
 
@@ -99,7 +102,7 @@ func _make_type_row(index: int, tmpl: Dictionary) -> Button:
 	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var label := Label.new()
-	label.text = str(tmpl.get("name", type_id))
+	label.text = tr(str(tmpl.get("name", type_id)))
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -151,7 +154,7 @@ func _apply_selection(index: int) -> void:
 	_custom_block.visible = is_custom
 	%AddButton.visible = is_custom
 	%AddButton.disabled = not is_custom
-	%AddButton.text = "Add"
+	%AddButton.text = tr("Add")
 	if is_custom:
 		_name_edit.text = ""
 		_miles_edit.text = ""
@@ -193,7 +196,7 @@ func _commit_add() -> void:
 	_error.text = ""
 	var tmpl := _selected_template()
 	if tmpl.is_empty():
-		_error.text = "Pick a service."
+		_error.text = tr("Pick a service.")
 		_adding = false
 		return
 	var type_id := str(tmpl.get("id", ""))
@@ -203,23 +206,23 @@ func _commit_add() -> void:
 	if type_id == "custom":
 		label = _name_edit.text.strip_edges()
 		if label == "":
-			_error.text = "Enter a name."
+			_error.text = tr("Enter a name.")
 			_adding = false
 			return
 		var miles_parsed := _parse_optional_int(_miles_edit.text)
 		if not bool(miles_parsed["ok"]):
-			_error.text = "Interval miles must be a whole number, or blank."
+			_error.text = tr("Interval kilometers must be a whole number, or blank.") if DueMath.distance_unit() == "km" else tr("Interval miles must be a whole number, or blank.")
 			_adding = false
 			return
 		var months_parsed := _parse_optional_int(_months_edit.text)
 		if not bool(months_parsed["ok"]):
-			_error.text = "Interval months must be a whole number, or blank."
+			_error.text = tr("Interval months must be a whole number, or blank.")
 			_adding = false
 			return
-		miles = int(miles_parsed["value"])
+		miles = DueMath.display_to_miles(int(miles_parsed["value"]))
 		months = int(months_parsed["value"])
 	if not GarageStore.add_service(type_id, label, miles, months):
-		_error.text = "Could not add this service."
+		_error.text = tr("Could not add this service.")
 		_adding = false
 		return
 	get_tree().change_scene_to_file("res://scenes/garage.tscn")

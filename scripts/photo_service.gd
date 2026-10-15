@@ -22,9 +22,9 @@ func _ready() -> void:
 	_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	_dialog.use_native_dialog = true
-	_dialog.title = "Pick a photo"
+	_dialog.title = tr("Pick a photo")
 	_dialog.filters = PackedStringArray([
-		"*.jpg, *.jpeg, *.png, *.webp ; Images",
+		"*.jpg, *.jpeg, *.png, *.webp ; %s" % tr("Images"),
 	])
 	_dialog.visible = false
 	_dialog.file_selected.connect(_on_file_selected)

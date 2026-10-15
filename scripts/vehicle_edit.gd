@@ -36,7 +36,7 @@ func _ready() -> void:
 	_plate_edit.text = str(vehicle.get("plate", ""))
 	_tire_edit.text = str(vehicle.get("tire_size", ""))
 	_filter_edit.text = str(vehicle.get("oil_filter", ""))
-	_odometer_edit.text = DueMath.format_miles(int(vehicle.get("odometer", 0)))
+	_odometer_edit.text = DueMath.format_miles(DueMath.miles_to_display(int(vehicle.get("odometer", 0))))
 	_error.text = ""
 	_show_photo(str(vehicle.get("photo", "")))
 	_photo_sheet.visible = false
@@ -79,15 +79,15 @@ func _lock_pick_field(field: LineEdit) -> void:
 
 
 func _open_make_pick() -> void:
-	PickSheet.present(self, "Make", VehicleCatalog.makes(), _make_edit.text, _on_make_picked)
+	PickSheet.present(self, tr("Make"), VehicleCatalog.makes(), _make_edit.text, _on_make_picked)
 
 
 func _open_model_pick() -> void:
 	var make_s := _make_edit.text.strip_edges()
 	if make_s == "":
-		PickSheet.present_notice(self, "Model", "Pick make first")
+		PickSheet.present_notice(self, tr("Model"), tr("Pick make first"))
 		return
-	PickSheet.present(self, "Model", VehicleCatalog.models(make_s), _model_edit.text, _on_model_picked)
+	PickSheet.present(self, tr("Model"), VehicleCatalog.models(make_s), _model_edit.text, _on_model_picked)
 
 
 func _on_make_picked(value: String) -> void:
@@ -276,29 +276,29 @@ func _on_photo_picked(src_path: String) -> void:
 	var vehicle := _target_vehicle()
 	var vehicle_id := str(vehicle.get("id", "")).strip_edges()
 	if vehicle_id == "":
-		_error.text = "Couldn't read that photo."
+		_error.text = tr("Couldn't read that photo.")
 		return
 	var dest := "v_%s.jpg" % vehicle_id
 	if not PhotoService.save_jpeg(src_path, dest):
-		_error.text = "Couldn't read that photo."
+		_error.text = tr("Couldn't read that photo.")
 		return
 	GarageStore.set_vehicle_photo(dest)
 	_show_photo(dest)
 
 
-func _on_photo_failed(_message: String) -> void:
-	_error.text = "Couldn't read that photo."
+func _on_photo_failed(message: String) -> void:
+	_error.text = tr(message) if message.strip_edges() != "" else tr("Couldn't read that photo.")
 
 
 func _on_save_pressed() -> void:
 	_error.text = ""
 	var year_raw := _year_edit.text.strip_edges()
 	if not year_raw.is_valid_int():
-		_error.text = "Enter year as a whole number."
+		_error.text = tr("Enter year as a whole number.")
 		return
 	var miles_raw := _odometer_edit.text.strip_edges().replace(",", "")
 	if miles_raw != "" and not miles_raw.is_valid_int():
-		_error.text = "Enter miles as a whole number."
+		_error.text = tr("Enter kilometers as a whole number.") if DueMath.distance_unit() == "km" else tr("Enter miles as a whole number.")
 		return
 	GarageStore.update_primary_vehicle({
 		"year": int(year_raw),
@@ -311,7 +311,7 @@ func _on_save_pressed() -> void:
 		"oil_filter": _filter_edit.text.strip_edges(),
 	})
 	if miles_raw.is_valid_int():
-		GarageStore.set_odometer(int(miles_raw))
+		GarageStore.set_odometer(DueMath.display_to_miles(int(miles_raw)))
 	get_tree().change_scene_to_file("res://scenes/garage.tscn")
 
 
@@ -344,10 +344,10 @@ func _on_archive_pressed() -> void:
 		nick = "this car"
 	ConfirmSheet.present(
 		self,
-		"Archive this car?",
-		"Hide %s from the garage. History stays." % nick,
-		"Keep",
-		"Archive",
+		tr("Archive this car?"),
+		tr("Hide %s from the garage. History stays.") % nick,
+		tr("Keep"),
+		tr("Archive"),
 		_on_archive_confirm
 	)
 

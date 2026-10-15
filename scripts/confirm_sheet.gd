@@ -39,7 +39,7 @@ func setup(
 	var body_s := body.strip_edges()
 	%Body.text = body_s
 	%Body.visible = body_s != ""
-	%SafeButton.text = safe_text if safe_text.strip_edges() != "" else "Keep"
+	%SafeButton.text = safe_text if safe_text.strip_edges() != "" else TranslationServer.translate("Keep")
 	var danger_s := danger_text.strip_edges()
 	%DangerButton.visible = danger_s != ""
 	if danger_s != "":

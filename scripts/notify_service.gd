@@ -9,6 +9,7 @@ const TEST_BODY := "If you see this, killed-app notify works"
 signal permission_resolved(ok: bool)
 
 var last_plan: Array = []
+var scheduler_override: Object = null
 var _warned_missing := false
 var _ns_node: Node
 var _ns_ready := false
@@ -41,6 +42,12 @@ func has_os_permission() -> bool:
 	return false
 
 
+func open_settings() -> void:
+	var sched := _scheduler()
+	if sched != null and sched.has_method("open_app_info_settings"):
+		sched.call("open_app_info_settings")
+
+
 func ensure_permission() -> void:
 	if has_os_permission():
 		permission_resolved.emit(true)
@@ -61,16 +68,16 @@ func schedule_test(delay_sec: int) -> String:
 	if not OS.is_debug_build():
 		return ""
 	if not OS.has_feature("ios"):
-		return "No notification plugin in the editor."
+		return tr("No notification plugin in the editor.")
 	var sched := _scheduler()
 	if sched == null:
-		return "No notification plugin in the editor."
+		return tr("No notification plugin in the editor.")
 	if not has_os_permission():
 		_pending_test_sec = maxi(1, delay_sec)
 		ensure_permission()
-		return "Allow notifications to send the test."
+		return tr("Allow notifications to send the test.")
 	_fire_test(delay_sec)
-	return "Test notification in 1 min. You can kill the app."
+	return tr("Test notification in 1 min. You can kill the app.")
 
 
 func _fire_test(delay_sec: int) -> void:
@@ -84,48 +91,39 @@ func _fire_test(delay_sec: int) -> void:
 	if sched.has_method("cancel"):
 		sched.call("cancel", TEST_ID)
 	_live_ids.erase(TEST_ID)
-	if sched == _ns_node:
-		var data = ClassDB.instantiate("NotificationData")
-		if data == null:
-			var packed := NotificationData.new()
-			packed.set_id(TEST_ID)
-			packed.set_title(TEST_TITLE)
-			packed.set_content(TEST_BODY)
-			packed.set_delay(delay)
-			sched.call("schedule", packed)
-		else:
-			data.call("set_id", TEST_ID)
-			data.call("set_title", TEST_TITLE)
-			data.call("set_content", TEST_BODY)
-			data.call("set_delay", delay)
-			sched.call("schedule", data)
+	if _uses_notification_data(sched):
+		sched.call("schedule", make_notification(TEST_ID, tr(TEST_TITLE), tr(TEST_BODY), delay))
 	else:
 		var unix := int(Time.get_unix_time_from_system()) + delay
-		sched.call("schedule", TEST_ID, TEST_TITLE, TEST_BODY, unix)
+		sched.call("schedule", TEST_ID, tr(TEST_TITLE), tr(TEST_BODY), unix)
 	if not _live_ids.has(TEST_ID):
 		_live_ids.append(TEST_ID)
 
 
 func _apply_os(sched: Object) -> void:
-	if sched.has_method("cancel_all"):
-		sched.call("cancel_all")
-		_live_ids.clear()
-	elif sched.has_method("cancel"):
-		for nid in _live_ids:
+	if sched.has_method("cancel"):
+		for nid in _stale_ids():
 			sched.call("cancel", int(nid))
-		_live_ids.clear()
+	_live_ids.clear()
+	var scheduled: Array = []
 	for item in last_plan:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
-		_schedule_one(sched, item)
+		if _schedule_one(sched, item):
+			scheduled.append(int(item.get("id", 0)))
+	GarageStore.data["scheduled_ids"] = scheduled
+	GarageStore.save()
 
 
 func _build_plan() -> Array:
 	var out: Array = []
-	if not Purchase.is_unlocked():
-		return out
+	var unlocked := Purchase.is_unlocked()
 	var today := GarageStore.today_ymd()
-	for vitem in GarageStore.vehicles_list():
+	var vehicles := GarageStore.vehicles_list()
+	var first_id := ""
+	if not vehicles.is_empty() and typeof(vehicles[0]) == TYPE_DICTIONARY:
+		first_id = str(vehicles[0].get("id", ""))
+	for vitem in vehicles:
 		if typeof(vitem) != TYPE_DICTIONARY:
 			continue
 		var vehicle: Dictionary = vitem
@@ -137,14 +135,18 @@ func _build_plan() -> Array:
 			var service: Dictionary = sitem
 			if not bool(service.get("notify", false)):
 				continue
+			if not unlocked:
+				if vid != first_id or str(service.get("type_id", "")) != "oil_change":
+					continue
 			var next_date := str(service.get("next_date", "")).strip_edges()
 			if DueMath.parse_ymd(next_date).is_empty():
 				continue
 			if DueMath.compare_ymd(next_date, today) <= 0:
 				continue
 			var label := str(service.get("label", "")).strip_edges()
-			var title := "Oil Due — %s" % nick if nick != "" else "Oil Due"
-			var body := "%s due" % label if label != "" else "Service due"
+			var title := tr("Oil Due — %s") % nick if nick != "" else tr("Oil Due")
+			var shown := tr(label) if label != "" else ""
+			var body := tr("%s due") % shown if shown != "" else tr("Service due")
 			out.append({
 				"id": _stable_id(vid, str(service.get("id", ""))),
 				"vehicle_id": vid,
@@ -184,7 +186,61 @@ func _print_plan() -> void:
 	print("NotifyService last_plan: %s" % ", ".join(dates))
 
 
+func local_nine_unix(ymd: String) -> int:
+	var parsed := DueMath.parse_ymd(ymd)
+	if parsed.is_empty():
+		return 0
+	var utc_naive := int(Time.get_unix_time_from_datetime_dict({
+		"year": int(parsed.year),
+		"month": int(parsed.month),
+		"day": int(parsed.day),
+		"hour": 9,
+		"minute": 0,
+		"second": 0,
+	}))
+	var zone: Dictionary = Time.get_time_zone_from_system()
+	var bias := int(zone.get("bias", 0))
+	return utc_naive + bias * 60
+
+
+func make_notification(id: int, title: String, body: String, delay: int) -> NotificationData:
+	var data := NotificationData.new()
+	data.set_id(id)
+	data.set_title(title)
+	data.set_content(body)
+	data.set_delay(delay)
+	return data
+
+
+func _uses_notification_data(sched: Object) -> bool:
+	return sched == _ns_node or sched == scheduler_override
+
+
+func _stale_ids() -> Array:
+	var seen: Dictionary = {}
+	var vehicles: Array = GarageStore.data.get("vehicles", [])
+	for vitem in vehicles:
+		if typeof(vitem) != TYPE_DICTIONARY:
+			continue
+		var vehicle: Dictionary = vitem
+		var vid := str(vehicle.get("id", ""))
+		for sitem in vehicle.get("services", []):
+			if typeof(sitem) != TYPE_DICTIONARY:
+				continue
+			var service: Dictionary = sitem
+			seen[_stable_id(vid, str(service.get("id", "")))] = true
+	var saved: Array = GarageStore.data.get("scheduled_ids", [])
+	if typeof(saved) == TYPE_ARRAY:
+		for nid in saved:
+			seen[int(nid)] = true
+	for nid in _live_ids:
+		seen[int(nid)] = true
+	return seen.keys()
+
+
 func _scheduler() -> Object:
+	if scheduler_override != null:
+		return scheduler_override
 	if Engine.has_singleton("NotificationScheduler"):
 		return Engine.get_singleton("NotificationScheduler")
 	if Engine.has_singleton("NotificationSchedulerPlugin"):
@@ -251,35 +307,21 @@ func _on_ns_ready() -> void:
 		_fire_test(delay)
 
 
-func _schedule_one(sched: Object, item: Dictionary) -> void:
+func _schedule_one(sched: Object, item: Dictionary) -> bool:
 	if not sched.has_method("schedule"):
-		return
-	var ymd := str(item.get("fire_ymd", ""))
-	var parsed := DueMath.parse_ymd(ymd)
-	if parsed.is_empty():
-		return
-	var unix := Time.get_unix_time_from_datetime_dict({
-		"year": int(parsed.year),
-		"month": int(parsed.month),
-		"day": int(parsed.day),
-		"hour": 9,
-		"minute": 0,
-		"second": 0,
-	})
+		return false
+	var unix := local_nine_unix(str(item.get("fire_ymd", "")))
+	if unix <= 0:
+		return false
+	var now := int(Time.get_unix_time_from_system())
+	if unix <= now:
+		return false
 	var nid := int(item.get("id", 0))
-	if sched == _ns_node:
-		var delay := int(unix) - int(Time.get_unix_time_from_system())
-		if delay < 1:
-			return
-		var data = ClassDB.instantiate("NotificationData")
-		if data == null:
-			return
-		data.call("set_id", nid)
-		data.call("set_title", str(item.get("title", "")))
-		data.call("set_content", str(item.get("body", "")))
-		data.call("set_delay", delay)
-		sched.call("schedule", data)
+	if _uses_notification_data(sched):
+		var delay := unix - now
+		sched.call("schedule", make_notification(nid, str(item.get("title", "")), str(item.get("body", "")), delay))
 		_live_ids.append(nid)
-		return
+		return true
 	sched.call("schedule", nid, str(item.get("title", "")), str(item.get("body", "")), unix)
 	_live_ids.append(nid)
+	return true

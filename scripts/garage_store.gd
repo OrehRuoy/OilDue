@@ -26,6 +26,8 @@ var unlock_continue_scene: String = ""
 
 
 func _ready() -> void:
+	_install_translations()
+	_apply_locale()
 	load_from_disk()
 
 
@@ -639,13 +641,16 @@ func import_merge(parsed: Dictionary) -> bool:
 		var interval_months := _as_int(service.get("interval_months"), 0)
 		service["next_date"] = DueMath.compute_next_date(str(service["last_date"]), interval_months)
 		service["next_miles"] = DueMath.compute_next_miles(int(service["last_miles"]), interval_miles)
+	var file_code := str(parsed.get("currency", "")).strip_edges().to_upper()
+	if DueMath.known_currency(file_code):
+		data["currency"] = file_code
 	save()
 	if added == 0:
-		import_notice = "Already on this car"
+		import_notice = tr("Already on this car")
 	elif added == 1:
-		import_notice = "Imported 1 job"
+		import_notice = tr("Imported 1 job")
 	else:
-		import_notice = "Imported %d jobs" % added
+		import_notice = tr("Imported %d jobs") % added
 	return true
 
 
@@ -856,6 +861,81 @@ func add_days_ymd(ymd: String, delta: int) -> String:
 	return _ordinal_to_ymd(ordinal + delta)
 
 
+func _apply_locale() -> void:
+	var raw := OS.get_locale().replace("-", "_")
+	var loc := "en"
+	if raw.begins_with("de"):
+		loc = "de"
+	elif raw.begins_with("fr"):
+		loc = "fr"
+	elif raw.begins_with("es"):
+		loc = "es_419"
+	elif raw.begins_with("pt"):
+		loc = "pt_BR"
+	TranslationServer.set_locale(loc)
+
+
+func _install_translations() -> void:
+	var text := FileAccess.get_file_as_string("res://translations/oil_due.csv")
+	if text.strip_edges() == "":
+		return
+	var lines := text.split("\n")
+	if lines.is_empty():
+		return
+	var header := _csv_fields(lines[0])
+	if header.size() < 2:
+		return
+	var books: Array = []
+	for i in range(1, header.size()):
+		var book := Translation.new()
+		book.locale = str(header[i]).strip_edges()
+		books.append(book)
+	for line_i in range(1, lines.size()):
+		var line := str(lines[line_i])
+		if line.strip_edges() == "":
+			continue
+		var cols := _csv_fields(line)
+		if cols.is_empty():
+			continue
+		var key := str(cols[0])
+		for i in range(books.size()):
+			var value := key
+			if i + 1 < cols.size() and str(cols[i + 1]) != "":
+				value = str(cols[i + 1])
+			books[i].add_message(key, value)
+	for book in books:
+		TranslationServer.add_translation(book)
+
+
+func _csv_fields(line: String) -> PackedStringArray:
+	var out: PackedStringArray = PackedStringArray()
+	var cur := ""
+	var quoted := false
+	var i := 0
+	var raw := line.replace("\r", "")
+	while i < raw.length():
+		var c := raw[i]
+		if quoted:
+			if c == "\"":
+				if i + 1 < raw.length() and raw[i + 1] == "\"":
+					cur += "\""
+					i += 1
+				else:
+					quoted = false
+			else:
+				cur += c
+		elif c == "\"":
+			quoted = true
+		elif c == ",":
+			out.append(cur)
+			cur = ""
+		else:
+			cur += c
+		i += 1
+	out.append(cur)
+	return out
+
+
 func _migrate(payload: Dictionary, from_version: int) -> Dictionary:
 	if from_version >= SCHEMA + 1:
 		return payload
@@ -872,6 +952,12 @@ func _migrate(payload: Dictionary, from_version: int) -> Dictionary:
 			payload["vehicles"] = []
 	if not payload.has("log_tip_seen"):
 		payload["log_tip_seen"] = true
+	if typeof(payload.get("scheduled_ids")) != TYPE_ARRAY:
+		payload["scheduled_ids"] = []
+	if str(payload.get("distance_unit", "")).strip_edges() == "":
+		payload["distance_unit"] = "mi"
+	if str(payload.get("currency", "")).strip_edges() == "":
+		payload["currency"] = "USD"
 	payload["schema"] = SCHEMA
 	return payload
 
@@ -896,10 +982,12 @@ func _seed() -> Dictionary:
 	return {
 		"schema": SCHEMA,
 		"units": "mi",
-		"currency": "USD",
+		"currency": DueMath.currency_for_locale(OS.get_locale()),
 		"notify_lead_days": 7,
 		"unlocked": false,
 		"log_tip_seen": false,
+		"scheduled_ids": [],
+		"distance_unit": DueMath.unit_for_locale(OS.get_locale()),
 		"vehicles": [],
 	}
 

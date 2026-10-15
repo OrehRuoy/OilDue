@@ -12,6 +12,7 @@ const EXPORT_CSV_PATH := "user://oil-due-export.csv"
 const HISTORY_PDF_PATH := "user://oil-due-history.pdf"
 const BACKUP_ZIP_PATH := "user://oil-due-backup.zip"
 const FILES_HINT := "Find it in Files, On My iPhone, Oil Due."
+const KEEP_HINT := " Move it to iCloud Drive to keep it if you delete the app."
 
 enum DialogMode { SAVE_CSV, SAVE_ZIP, OPEN_ZIP, SAVE_PDF }
 enum PickKind { CSV, ZIP }
@@ -28,6 +29,8 @@ enum PickKind { CSV, ZIP }
 
 var _dialog_mode := DialogMode.SAVE_CSV
 var _pick_kind := PickKind.CSV
+var _distance_button: Button
+var _currency_option: OptionButton
 
 
 func _ready() -> void:
@@ -40,6 +43,8 @@ func _ready() -> void:
 		idx = LEAD_VALUES.find(7)
 	_lead_option.select(idx)
 	_lead_option.item_selected.connect(_on_lead_selected)
+	_ensure_distance_switch()
+	_ensure_currency_picker()
 	%HelpButton.pressed.connect(_on_help_pressed)
 	%RestorePurchasesButton.pressed.connect(_on_restore_purchases_pressed)
 	%ImportCsvButton.pressed.connect(_on_import_csv_pressed)
@@ -60,12 +65,78 @@ func _ready() -> void:
 	var version := str(ProjectSettings.get_setting("application/config/version", "0.1.0"))
 	if version.strip_edges() == "":
 		version = "0.1.0"
-	_version.text = "Version %s" % version
+	_version.text = tr("Version %s") % version
 	_status.text = ""
 	_setup_unlock_check()
 	_fill_archived()
 	if not NotifyService.permission_resolved.is_connected(_on_notify_permission):
 		NotifyService.permission_resolved.connect(_on_notify_permission)
+
+
+func _ensure_distance_switch() -> void:
+	var group := _lead_option.get_parent().get_parent().get_parent()
+	var column := group.get_parent()
+	var caption := Label.new()
+	caption.text = tr("Distance")
+	caption.theme_type_variation = "Caption"
+	_distance_button = Button.new()
+	_distance_button.custom_minimum_size = Vector2(0, 52)
+	_distance_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_distance_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_distance_button.pressed.connect(_on_distance_pressed)
+	_refresh_distance_button()
+	var at := group.get_index() + 1
+	column.add_child(caption)
+	column.add_child(_distance_button)
+	column.move_child(caption, at)
+	column.move_child(_distance_button, at + 1)
+
+
+func _refresh_distance_button() -> void:
+	if _distance_button == null:
+		return
+	if DueMath.distance_unit() == "km":
+		_distance_button.text = tr("Kilometers")
+	else:
+		_distance_button.text = tr("Miles")
+
+
+func _on_distance_pressed() -> void:
+	var next := "km" if DueMath.distance_unit() == "mi" else "mi"
+	GarageStore.data["distance_unit"] = next
+	GarageStore.save()
+	_refresh_distance_button()
+
+
+func _ensure_currency_picker() -> void:
+	var column := _distance_button.get_parent()
+	var caption := Label.new()
+	caption.text = tr("Currency")
+	caption.theme_type_variation = "Caption"
+	_currency_option = OptionButton.new()
+	_currency_option.custom_minimum_size = Vector2(0, 52)
+	_currency_option.fit_to_longest_item = false
+	_currency_option.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	for code in DueMath.CURRENCY_CODES:
+		_currency_option.add_item(str(code))
+	var current := DueMath.currency_code()
+	var idx := DueMath.CURRENCY_CODES.find(current)
+	if idx < 0:
+		idx = 0
+	_currency_option.select(idx)
+	_currency_option.item_selected.connect(_on_currency_selected)
+	var at := _distance_button.get_index() + 1
+	column.add_child(caption)
+	column.add_child(_currency_option)
+	column.move_child(caption, at)
+	column.move_child(_currency_option, at + 1)
+
+
+func _on_currency_selected(index: int) -> void:
+	if index < 0 or index >= DueMath.CURRENCY_CODES.size():
+		return
+	GarageStore.data["currency"] = str(DueMath.CURRENCY_CODES[index])
+	GarageStore.save()
 
 
 func _on_lead_selected(index: int) -> void:
@@ -80,11 +151,22 @@ func _on_help_pressed() -> void:
 
 
 func _on_restore_purchases_pressed() -> void:
+	_status.text = tr("Restoring…")
+	if not Purchase.purchase_finished.is_connected(_on_restore_finished):
+		Purchase.purchase_finished.connect(_on_restore_finished)
 	Purchase.restore()
-	if GarageStore.is_unlocked():
-		_status.text = "Purchases restored."
+
+
+func _exit_tree() -> void:
+	if Purchase.purchase_finished.is_connected(_on_restore_finished):
+		Purchase.purchase_finished.disconnect(_on_restore_finished)
+
+
+func _on_restore_finished(ok: bool) -> void:
+	if ok and GarageStore.is_unlocked():
+		_status.text = tr("Purchases restored.")
 	else:
-		_status.text = Purchase.last_message if Purchase.last_message != "" else "Nothing to restore."
+		_status.text = tr(Purchase.last_message) if Purchase.last_message != "" else tr("Nothing to restore.")
 	_setup_unlock_check()
 	_fill_archived()
 
@@ -131,7 +213,7 @@ func _on_archived_pressed(vehicle_id: String) -> void:
 		return
 	GarageStore.set_archived(vehicle_id, false)
 	_fill_archived()
-	_status.text = "Restored to garage."
+	_status.text = tr("Restored to garage.")
 
 
 func _on_import_csv_pressed() -> void:
@@ -143,7 +225,7 @@ func _on_import_csv_pressed() -> void:
 
 func _on_load_demo_pressed() -> void:
 	GarageStore.load_demo()
-	_status.text = "Demo car added."
+	_status.text = tr("Demo car added.")
 	_fill_archived()
 
 
@@ -154,12 +236,12 @@ func _on_test_notify_pressed() -> void:
 
 
 func _on_notify_permission(ok: bool) -> void:
-	if _status.text != "Allow notifications to send the test.":
+	if _status.text != tr("Allow notifications to send the test."):
 		return
 	if ok:
-		_status.text = "Test notification in 1 min. You can kill the app."
+		_status.text = tr("Test notification in 1 min. You can kill the app.")
 	else:
-		_status.text = "Turn on Notifications in iPhone Settings → Oil Due"
+		_status.text = tr("Turn on Notifications in iPhone Settings → Oil Due")
 
 
 func _on_reset_first_run_pressed() -> void:
@@ -167,10 +249,10 @@ func _on_reset_first_run_pressed() -> void:
 		return
 	ConfirmSheet.present(
 		self,
-		"Reset to first run?",
-		"Clears cars in this editor copy so Welcome to Oil Due shows again. Release builds never see this.",
-		"Keep",
-		"Reset",
+		tr("Reset to first run?"),
+		tr("Clears cars in this editor copy so Welcome to Oil Due shows again. Release builds never see this."),
+		tr("Keep"),
+		tr("Reset"),
 		_on_reset_first_run_confirm
 	)
 
@@ -199,18 +281,18 @@ func _on_export_csv_pressed() -> void:
 	if _on_ios():
 		var stamped := "user://oil-due-export-%s.csv" % _file_stamp()
 		if not GarageStore.write_export_csv(stamped):
-			_status.text = "Couldn't save the export."
+			_status.text = tr("Couldn't save the export.")
 			return
 		GarageStore.write_export_csv(EXPORT_CSV_PATH)
-		_status.text = "Export saved. %s" % FILES_HINT
+		_status.text = tr("Export saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 		return
 	if GarageStore.write_export_csv(EXPORT_CSV_PATH):
-		_status.text = "Export saved. %s" % FILES_HINT
+		_status.text = tr("Export saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 	else:
-		_status.text = "Couldn't save the export."
+		_status.text = tr("Couldn't save the export.")
 		return
 	_dialog_mode = DialogMode.SAVE_CSV
-	_io_dialog.title = "Export CSV"
+	_io_dialog.title = tr("Export CSV")
 	_io_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	_io_dialog.filters = PackedStringArray(["*.csv ; CSV"])
 	_io_dialog.popup_centered()
@@ -218,21 +300,21 @@ func _on_export_csv_pressed() -> void:
 
 func _on_export_pdf_pressed() -> void:
 	if not HistoryPdf.has_jobs(GarageStore._current_vehicle()):
-		_status.text = "No jobs to export."
+		_status.text = tr("No jobs to export.")
 		return
 	if _on_ios():
 		var stamped := "user://oil-due-history-%s.pdf" % _file_stamp()
 		if not GarageStore.write_history_pdf(stamped) or not GarageStore.write_history_pdf(HISTORY_PDF_PATH):
-			_status.text = "Couldn't save the PDF."
+			_status.text = tr("Couldn't save the PDF.")
 			return
-		_status.text = "PDF saved. %s" % FILES_HINT
+		_status.text = tr("PDF saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 		return
 	if not GarageStore.write_history_pdf(HISTORY_PDF_PATH):
-		_status.text = "Couldn't save the PDF."
+		_status.text = tr("Couldn't save the PDF.")
 		return
-	_status.text = "PDF saved. %s" % FILES_HINT
+	_status.text = tr("PDF saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 	_dialog_mode = DialogMode.SAVE_PDF
-	_io_dialog.title = "Export PDF"
+	_io_dialog.title = tr("Export PDF")
 	_io_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	_io_dialog.filters = PackedStringArray(["*.pdf ; PDF"])
 	_io_dialog.popup_centered()
@@ -242,18 +324,18 @@ func _on_backup_zip_pressed() -> void:
 	if _on_ios():
 		var stamped := "user://oil-due-backup-%s.zip" % _file_stamp()
 		if not GarageStore.write_backup_zip(stamped):
-			_status.text = "Couldn't save the backup."
+			_status.text = tr("Couldn't save the backup.")
 			return
 		GarageStore.write_backup_zip(BACKUP_ZIP_PATH)
-		_status.text = "Backup saved. %s" % FILES_HINT
+		_status.text = tr("Backup saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 		return
 	if GarageStore.write_backup_zip(BACKUP_ZIP_PATH):
-		_status.text = "Backup saved. %s" % FILES_HINT
+		_status.text = tr("Backup saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 	else:
-		_status.text = "Couldn't save the backup."
+		_status.text = tr("Couldn't save the backup.")
 		return
 	_dialog_mode = DialogMode.SAVE_ZIP
-	_io_dialog.title = "Backup zip"
+	_io_dialog.title = tr("Backup zip")
 	_io_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	_io_dialog.filters = PackedStringArray(["*.zip ; ZIP"])
 	_io_dialog.popup_centered()
@@ -264,7 +346,7 @@ func _on_restore_zip_pressed() -> void:
 		_open_file_pick(PickKind.ZIP)
 		return
 	_dialog_mode = DialogMode.OPEN_ZIP
-	_io_dialog.title = "Restore zip"
+	_io_dialog.title = tr("Restore zip")
 	_io_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_io_dialog.filters = PackedStringArray(["*.zip ; ZIP"])
 	_io_dialog.popup_centered()
@@ -281,17 +363,17 @@ func _on_restore_last_pressed() -> void:
 func _on_io_chosen(path: String) -> void:
 	if _dialog_mode == DialogMode.SAVE_CSV:
 		if GarageStore.write_export_csv(path):
-			_status.text = "Export saved. %s" % FILES_HINT
+			_status.text = tr("Export saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 		return
 	if _dialog_mode == DialogMode.SAVE_PDF:
 		if GarageStore.write_history_pdf(path):
-			_status.text = "PDF saved. %s" % FILES_HINT
+			_status.text = tr("PDF saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 		else:
-			_status.text = "Couldn't save the PDF."
+			_status.text = tr("Couldn't save the PDF.")
 		return
 	if _dialog_mode == DialogMode.SAVE_ZIP:
 		if GarageStore.write_backup_zip(path):
-			_status.text = "Backup saved. %s" % FILES_HINT
+			_status.text = tr("Backup saved. %s%s") % [tr(FILES_HINT), tr(KEEP_HINT)]
 		return
 	if _dialog_mode == DialogMode.OPEN_ZIP:
 		_open_restore_confirm(path)
@@ -301,10 +383,10 @@ func _open_restore_confirm(path: String) -> void:
 	GarageStore.pending_restore_path = path
 	ConfirmSheet.present(
 		self,
-		"Restore backup?",
-		"This replaces the garage on this phone.",
-		"Keep",
-		"Replace",
+		tr("Restore backup?"),
+		tr("This replaces the garage on this phone."),
+		tr("Keep"),
+		tr("Replace"),
 		_on_restore_confirmed
 	)
 
@@ -315,7 +397,7 @@ func _on_restore_confirmed() -> void:
 		var msg := GarageStore.last_backup_error.strip_edges()
 		if msg == "":
 			msg = "Couldn't read this backup. The garage on this phone was not changed."
-		_status.text = msg
+		_status.text = tr(msg)
 		GarageStore.pending_restore_path = ""
 		return
 	GarageStore.pending_restore_path = ""
@@ -377,9 +459,9 @@ func _open_file_pick(kind: PickKind) -> void:
 	var names := _user_files(ext)
 	_file_empty.visible = names.is_empty()
 	if kind == PickKind.CSV:
-		_file_empty.text = "In Vehicle Maintenance Tracker, export a CSV. In Files, put it in On My iPhone → Oil Due. Photos are not in that CSV."
+		_file_empty.text = tr("In Vehicle Maintenance Tracker, export a CSV. In Files, put it in On My iPhone → Oil Due. Photos are not in that CSV.")
 	else:
-		_file_empty.text = "Put a zip in Files, On My iPhone, Oil Due."
+		_file_empty.text = tr("Put a zip in Files, On My iPhone, Oil Due.")
 	_file_scroll.visible = not names.is_empty()
 	_file_scroll.custom_minimum_size.y = mini(240, names.size() * 52)
 	for file_name in names:

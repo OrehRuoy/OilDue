@@ -74,7 +74,9 @@ static func parse_text(text: String) -> Dictionary:
 				skipped += 1
 	if data_rows == 0:
 		return no_rows
-	return _result(true, kind, "", vehicles, jobs, skipped)
+	var parsed := _result(true, kind, "", vehicles, jobs, skipped)
+	parsed["currency"] = _file_currency(headers, rows)
+	return parsed
 
 
 static func parse_import_date(raw: String) -> String:
@@ -106,36 +108,34 @@ static func parse_import_date(raw: String) -> String:
 
 
 static func dollars_to_cents(raw: String) -> Dictionary:
-	var s := raw.strip_edges().replace("$", "").replace(",", "")
-	if s == "":
-		return {"ok": true, "cents": 0}
-	var parts := s.split(".")
-	if parts.size() >= 3:
-		return {"ok": false, "cents": 0}
-	if parts.size() == 1:
-		if not parts[0].is_valid_int():
-			return {"ok": false, "cents": 0}
-		var dollars := int(parts[0])
-		if dollars < 0:
-			return {"ok": false, "cents": 0}
-		return {"ok": true, "cents": dollars * 100}
-	var dollars_s := parts[0]
-	var cents_s := parts[1]
-	if dollars_s == "":
-		dollars_s = "0"
-	if not dollars_s.is_valid_int():
-		return {"ok": false, "cents": 0}
-	if int(dollars_s) < 0:
-		return {"ok": false, "cents": 0}
-	if cents_s.length() > 2:
-		cents_s = cents_s.substr(0, 2)
-	elif cents_s.length() == 1:
-		cents_s += "0"
-	elif cents_s.length() == 0:
-		cents_s = "00"
-	if not cents_s.is_valid_int():
-		return {"ok": false, "cents": 0}
-	return {"ok": true, "cents": int(dollars_s) * 100 + int(cents_s)}
+	return DueMath.parse_cents(raw)
+
+
+static func _file_currency(headers: Array, rows: Array) -> String:
+	var column := -1
+	var from_label := ""
+	for i in range(headers.size()):
+		var name := str(headers[i]).strip_edges()
+		var lower := name.to_lower()
+		if (
+			lower == "currency"
+			or lower == "währung"
+			or lower == "devise"
+			or lower == "moneda"
+			or lower == "moeda"
+		):
+			column = i
+		var labeled := DueMath.currency_in_label(name)
+		if labeled != "":
+			from_label = labeled
+	if column >= 0:
+		for r in range(1, rows.size()):
+			var cells: Array = rows[r]
+			if column < cells.size():
+				var value := str(cells[column]).strip_edges().to_upper()
+				if DueMath.known_currency(value):
+					return value
+	return from_label
 
 
 static func _result(ok: bool, kind: String, error: String, vehicles: Array, jobs: Array, skipped: int = 0) -> Dictionary:
@@ -209,7 +209,7 @@ static func _equipment_vehicle(headers: Array, cells: Array) -> Dictionary:
 		"plate": _col(headers, cells, "Plate"),
 		"oil_filter": _col(headers, cells, "OilFilter"),
 		"tire_size": _col(headers, cells, "TireSize"),
-		"odometer": _as_int_str(_col(headers, cells, "Odometer")),
+		"odometer": DueMath.display_to_miles(_as_int_str(_col(headers, cells, "Odometer"))),
 	}
 
 
@@ -222,7 +222,7 @@ static func _maintenance_job(headers: Array, cells: Array) -> Dictionary:
 		"vin": _col(headers, cells, "VIN"),
 		"label": _col(headers, cells, "Description"),
 		"date": parse_import_date(_col(headers, cells, "ServiceDate")),
-		"miles": _as_int_str(_col(headers, cells, "Odometer")),
+		"miles": DueMath.display_to_miles(_as_int_str(_col(headers, cells, "Odometer"))),
 		"cost_cents": int(part.get("cents", 0)) + int(labor.get("cents", 0)),
 		"notes": _col(headers, cells, "Note"),
 	}
@@ -293,7 +293,7 @@ static func _append_generic(headers: Array, cells: Array, vehicles: Array, jobs:
 			"plate": mapped["plate"],
 			"oil_filter": mapped["oil_filter"],
 			"tire_size": mapped["tire_size"],
-			"odometer": mapped["odometer"],
+			"odometer": DueMath.display_to_miles(int(mapped["odometer"])),
 		})
 	if has_job:
 		jobs.append({
@@ -302,7 +302,7 @@ static func _append_generic(headers: Array, cells: Array, vehicles: Array, jobs:
 			"vin": mapped["vin"],
 			"label": mapped["label"],
 			"date": mapped["date"],
-			"miles": mapped["miles"],
+			"miles": DueMath.display_to_miles(int(mapped["miles"])),
 			"cost_cents": mapped["cost_cents"],
 			"notes": mapped["notes"],
 		})

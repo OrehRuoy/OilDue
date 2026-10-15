@@ -4,6 +4,7 @@ const DueMath = preload("res://scripts/due_math.gd")
 
 
 func _ready() -> void:
+	TranslationServer.set_locale("en")
 	var fail := _run()
 	if fail == "":
 		%Result.text = "PASS"

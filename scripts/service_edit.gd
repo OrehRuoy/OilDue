@@ -19,6 +19,7 @@ const ConfirmSheet = preload("res://scripts/confirm_sheet.gd")
 var _ymd := ""
 var _editing := false
 var _notify_pending := false
+var _open_settings_btn: Button
 
 
 func _ready() -> void:
@@ -27,6 +28,7 @@ func _ready() -> void:
 	_style_notes_field()
 	_fill_form()
 	_error.text = ""
+	_apply_distance_caption()
 	set_process(DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD))
 	%LogButton.pressed.connect(_on_log_pressed)
 	%Back.pressed.connect(_on_back_pressed)
@@ -86,26 +88,27 @@ func _fill_form() -> void:
 	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
 	var job := GarageStore.history_job(GarageStore.selected_history_id)
 	_editing = not job.is_empty()
+	_cost_edit.placeholder_text = DueMath.format_cost_input(4550)
 	if _editing:
-		_title.text = "Edit job"
-		%LogButton.text = "Save"
+		_title.text = tr("Edit job")
+		%LogButton.text = tr("Save")
 		_delete_btn.visible = true
 		_ymd = str(job.get("date", "")).strip_edges()
 		if DueMath.parse_ymd(_ymd).is_empty():
 			_ymd = GarageStore.today_ymd()
-		_miles_edit.text = DueMath.format_miles(int(job.get("miles", 0)))
-		_cost_edit.text = _cents_to_dollars_field(int(job.get("cost_cents", 0)))
+		_miles_edit.text = DueMath.format_miles(DueMath.miles_to_display(int(job.get("miles", 0))))
+		_cost_edit.text = DueMath.format_cost_input(int(job.get("cost_cents", 0)))
 		_notes_edit.text = str(job.get("notes", ""))
 		var receipt := str(job.get("receipt", "")).strip_edges()
 		_set_receipt_preview(PhotoService.load_texture(receipt))
 	else:
 		GarageStore.selected_history_id = ""
 		var label := str(service.get("label", ""))
-		_title.text = label if label != "" else "Log service"
-		%LogButton.text = "Log this service"
+		_title.text = tr(label) if label != "" else tr("Log service")
+		%LogButton.text = tr("Log this service")
 		_delete_btn.visible = false
 		_ymd = GarageStore.today_ymd()
-		_miles_edit.text = DueMath.format_miles(int(vehicle.get("odometer", 0)))
+		_miles_edit.text = DueMath.format_miles(DueMath.miles_to_display(int(vehicle.get("odometer", 0))))
 		_cost_edit.text = ""
 		_notes_edit.text = ""
 		_set_receipt_preview(null)
@@ -163,7 +166,7 @@ func _on_miles_focus_exited() -> void:
 func _setup_notify() -> void:
 	var vehicle := GarageStore.vehicle_by_id(GarageStore.selected_vehicle_id)
 	var service := GarageStore.service_by_id(vehicle, GarageStore.selected_service_id)
-	if Purchase.is_unlocked():
+	if _remind_allowed():
 		_notify.on = bool(service.get("notify", false))
 	else:
 		_notify.on = false
@@ -173,7 +176,7 @@ func _setup_notify() -> void:
 
 func _on_notify_toggled(want_on: bool) -> void:
 	_error.text = ""
-	if not Purchase.is_unlocked():
+	if not _remind_allowed():
 		if not want_on:
 			_notify_pending = false
 			_notify.on = false
@@ -199,20 +202,58 @@ func _on_notify_toggled(want_on: bool) -> void:
 	NotifyService.ensure_permission()
 
 
+func _apply_distance_caption() -> void:
+	var parent := _miles_edit.get_parent()
+	if parent == null or parent.get_child_count() < 1:
+		return
+	var cap := parent.get_child(0)
+	if cap is Label:
+		cap.text = tr("Kilometers") if DueMath.distance_unit() == "km" else tr("Miles")
+
+
+func _remind_allowed() -> bool:
+	if Purchase.is_unlocked():
+		return true
+	var vehicles := GarageStore.vehicles_list()
+	if vehicles.is_empty() or typeof(vehicles[0]) != TYPE_DICTIONARY:
+		return false
+	var first: Dictionary = vehicles[0]
+	if str(first.get("id", "")) != GarageStore.selected_vehicle_id:
+		return false
+	var service := GarageStore.service_by_id(first, GarageStore.selected_service_id)
+	return str(service.get("type_id", "")) == "oil_change"
+
+
 func _on_permission_resolved(ok: bool) -> void:
 	if not _notify_pending:
 		return
 	_notify_pending = false
-	if not Purchase.is_unlocked():
+	if not _remind_allowed():
 		_notify.on = false
 		return
 	if ok:
 		_notify.on = true
 		GarageStore.set_service_notify(true)
+		if _open_settings_btn != null:
+			_open_settings_btn.visible = false
 		return
 	_notify.on = false
 	GarageStore.set_service_notify(false)
-	_error.text = "Turn on Notifications in iPhone Settings → Oil Due"
+	_error.text = tr("Reminders are off in iPhone Settings")
+	_show_open_settings()
+
+
+func _show_open_settings() -> void:
+	if _open_settings_btn == null:
+		_open_settings_btn = Button.new()
+		_open_settings_btn.text = tr("Open Settings")
+		_open_settings_btn.custom_minimum_size = Vector2(0, 48)
+		_open_settings_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_open_settings_btn.pressed.connect(NotifyService.open_settings)
+		var parent := _error.get_parent()
+		parent.add_child(_open_settings_btn)
+		parent.move_child(_open_settings_btn, _error.get_index() + 1)
+	_open_settings_btn.visible = true
 
 
 func _on_photo_picked(src_path: String) -> void:
@@ -224,27 +265,27 @@ func _on_photo_picked(src_path: String) -> void:
 	_set_receipt_preview(ImageTexture.create_from_image(img))
 
 
-func _on_photo_failed(_message: String) -> void:
-	_error.text = "Couldn't read that photo."
+func _on_photo_failed(message: String) -> void:
+	_error.text = tr(message) if message.strip_edges() != "" else tr("Couldn't read that photo.")
 
 
 func _on_log_pressed() -> void:
 	_error.text = ""
 	var date := _ymd.strip_edges()
 	if DueMath.parse_ymd(date).is_empty():
-		_error.text = "Pick a date."
+		_error.text = tr("Pick a date.")
 		return
 	var miles_raw := _miles_edit.text.strip_edges().replace(",", "")
 	if not miles_raw.is_valid_int():
-		_error.text = "Enter miles as a whole number."
+		_error.text = tr("Enter kilometers as a whole number.") if DueMath.distance_unit() == "km" else tr("Enter miles as a whole number.")
 		return
-	var miles := int(miles_raw)
+	var miles := DueMath.display_to_miles(int(miles_raw))
 	if miles < 0:
-		_error.text = "Miles cannot be negative."
+		_error.text = tr("Kilometers cannot be negative.") if DueMath.distance_unit() == "km" else tr("Miles cannot be negative.")
 		return
-	var cost := _dollars_to_cents(_cost_edit.text)
+	var cost := DueMath.parse_cents(_cost_edit.text)
 	if not bool(cost["ok"]):
-		_error.text = "Enter cost as dollars, or leave blank."
+		_error.text = tr("Enter cost as a number, or leave blank.")
 		return
 	var notes := _notes_edit.text.strip_edges()
 	var ok := false
@@ -255,21 +296,21 @@ func _on_log_pressed() -> void:
 	else:
 		ok = GarageStore.log_service(date, miles, int(cost["cents"]), notes)
 	if not ok:
-		_error.text = "Could not save this service."
+		_error.text = tr("Could not save this service.")
 		return
 	GarageStore.selected_history_id = ""
 	get_tree().change_scene_to_file("res://scenes/service_list.tscn")
 
 
 func _on_delete_pressed() -> void:
-	ConfirmSheet.present(self, "Delete this job?", "", "Keep", "Delete", _on_delete_confirmed)
+	ConfirmSheet.present(self, tr("Delete this job?"), "", tr("Keep"), tr("Delete"), _on_delete_confirmed)
 
 
 func _on_delete_confirmed() -> void:
 	if not _editing:
 		return
 	if not GarageStore.delete_history(GarageStore.selected_history_id):
-		_error.text = "Could not delete this job."
+		_error.text = tr("Could not delete this job.")
 		return
 	GarageStore.pending_receipt_src = ""
 	GarageStore.selected_history_id = ""
@@ -281,44 +322,3 @@ func _set_receipt_preview(tex: Texture2D) -> void:
 	_receipt_preview.visible = tex != null
 
 
-func _cents_to_dollars_field(cents: int) -> String:
-	if cents <= 0:
-		return ""
-	var dollars := cents / 100
-	var rem := cents % 100
-	if rem == 0:
-		return str(dollars)
-	return "%d.%02d" % [dollars, rem]
-
-
-func _dollars_to_cents(raw: String) -> Dictionary:
-	var s := raw.strip_edges().replace("$", "").replace(",", "")
-	if s == "":
-		return {"ok": true, "cents": 0}
-	var parts := s.split(".")
-	if parts.size() >= 3:
-		return {"ok": false, "cents": 0}
-	if parts.size() == 1:
-		if not parts[0].is_valid_int():
-			return {"ok": false, "cents": 0}
-		var dollars := int(parts[0])
-		if dollars < 0:
-			return {"ok": false, "cents": 0}
-		return {"ok": true, "cents": dollars * 100}
-	var dollars_s := parts[0]
-	var cents_s := parts[1]
-	if dollars_s == "":
-		dollars_s = "0"
-	if not dollars_s.is_valid_int():
-		return {"ok": false, "cents": 0}
-	if int(dollars_s) < 0:
-		return {"ok": false, "cents": 0}
-	if cents_s.length() > 2:
-		cents_s = cents_s.substr(0, 2)
-	elif cents_s.length() == 1:
-		cents_s += "0"
-	elif cents_s.length() == 0:
-		cents_s = "00"
-	if not cents_s.is_valid_int():
-		return {"ok": false, "cents": 0}
-	return {"ok": true, "cents": int(dollars_s) * 100 + int(cents_s)}

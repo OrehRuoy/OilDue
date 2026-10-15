@@ -5,6 +5,7 @@ const PdfText = preload("res://scripts/pdf_text.gd")
 
 
 func _ready() -> void:
+	TranslationServer.set_locale("en")
 	var fail := _run()
 	if fail == "":
 		%Result.text = "PASS"
@@ -14,6 +15,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
+	GarageStore.data["currency"] = "USD"
 	var notes := ""
 	for _i in 200:
 		notes += "q"
