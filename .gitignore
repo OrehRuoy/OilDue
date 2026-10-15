@@ -19,3 +19,6 @@ mono_crash.*.json
 
 # Imported translations
 *.translation
+
+# App Store screenshots. Not part of the app.
+OilDue-ASC-Screenshots/
