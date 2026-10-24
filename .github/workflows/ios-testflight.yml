@@ -40,6 +40,9 @@ jobs:
           test -f native/godot-datepicker/date_picker_module.cpp
           test -f native/build_plugins.sh
           test -f addons/NotificationSchedulerPlugin/plugin.cfg
+          test -f translations/oil_due.csv
+          grep -q 'importer="keep"' translations/oil_due.csv.import
+          python3 tools/ios/add_store_localizations.py --self-test
           if grep -q 'plugins/exported=' export_presets.cfg; then
             echo "::error::Do not use plugins/exported= — use plugins/StoreKit=true, plugins/NotificationSchedulerPlugin=true, plugins/PhotoPicker=true, plugins/DatePicker=true"
             exit 1
@@ -52,7 +55,7 @@ jobs:
 
   build-ios:
     needs: preflight
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_macos_export }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.run_macos_export) }}
     runs-on: macos-26
     timeout-minutes: 90
     env:
@@ -132,7 +135,8 @@ jobs:
           mkdir -p build
           grep 'application/export_project_only=' export_presets.cfg
           "$GODOT_BIN" --headless --path . --import || true
-          "$GODOT_BIN" --headless --path . --export-release "iOS (TestFlight IPA)" "build/OilDue.ipa"
+          "$GODOT_BIN" --headless --path . --export-release "iOS (TestFlight IPA)" "build/OilDue.ipa" 2>&1 | tee "$RUNNER_TEMP/godot-export.log"
+          python3 tools/ios/add_store_localizations.py --check-export-log "$RUNNER_TEMP/godot-export.log"
           XCODEPROJ=$(find build -name '*.xcodeproj' | head -1)
           if [[ -z "$XCODEPROJ" ]]; then
             echo "ERROR: no .xcodeproj under build/"
@@ -142,6 +146,9 @@ jobs:
           test -f "$XCODEPROJ/project.pbxproj"
           echo "Xcode project: $XCODEPROJ"
           ls -la build/
+          python3 tools/ios/add_store_localizations.py build
+          PCK=$(find build -name 'OilDue.pck' | head -1)
+          python3 tools/ios/add_store_localizations.py --verify-pck "$PCK"
 
       - name: Archive and export IPA
         run: |
@@ -182,6 +189,23 @@ jobs:
             -exportOptionsPlist build/ExportOptions.plist
           ls -la build/*.ipa
           test -n "$(ls build/*.ipa 2>/dev/null)"
+          APP=$(find build -path '*.xcarchive/Products/Applications/*.app' -type d | head -1)
+          echo "App bundle: $APP"
+          find "$APP" -name '*.lproj' | sort
+          python3 tools/ios/add_store_localizations.py --verify-app "$APP"
+          for lang in en de fr es pt; do
+            echo "---- $lang InfoPlist.strings ----"
+            plutil -p "$APP/$lang.lproj/InfoPlist.strings"
+          done
+          if find "$APP" -name 'ja.lproj' | grep -q .; then
+            echo "unexpected ja.lproj"
+            exit 1
+          fi
+          IPA=$(ls build/*.ipa | head -1)
+          unzip -l "$IPA" | grep '\.lproj/' | sort
+          for lang in en de fr es pt; do
+            unzip -l "$IPA" | grep -q "/$lang.lproj/"
+          done
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -1,0 +1,9 @@
+[remap]
+
+importer="keep"
+uid="uid://b7oilduecsv01"
+
+[deps]
+
+source_file="res://translations/oil_due.csv"
+dest_files=["res://translations/oil_due.csv"]

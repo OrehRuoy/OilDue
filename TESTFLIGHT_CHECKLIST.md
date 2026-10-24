@@ -1,5 +1,7 @@
-# Oil Due 1.0.2 TestFlight checklist
+# Oil Due 1.0.3 TestFlight checklist
 
+- A French iPhone shows French (Réglages, Ajouter un entretien, Permutation). German, Spanish, and Portuguese iPhones show those languages. Any other language stays English.
+- App Store Connect lists English, German, French, Spanish, and Portuguese.
 - Reminder for a due date of tomorrow fires at 9:00 AM local, not 9:00 UTC.
 - Debug test notification still arrives about a minute later with the app killed.
 - Turning Remind off cancels that reminder and does not schedule a new one.

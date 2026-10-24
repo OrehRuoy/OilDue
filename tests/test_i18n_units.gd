@@ -19,10 +19,67 @@ func _run() -> String:
 	var fail := _translations()
 	if fail != "":
 		return fail
+	fail = _device_language()
+	if fail != "":
+		return fail
 	fail = _units()
 	if fail != "":
 		return fail
 	return _currency()
+
+
+func _device_language() -> String:
+	var imp := FileAccess.get_file_as_string("res://translations/oil_due.csv.import")
+	if not imp.contains('importer="keep"'):
+		return "oil_due.csv must stay importer keep so the device build contains the CSV"
+	var header := FileAccess.get_file_as_string("res://translations/oil_due.csv").split("\n")[0]
+	if header.split(",").has("ja"):
+		return "do not add a Japanese column"
+	var cases := {
+		"fr_FR": "fr",
+		"fr-FR": "fr",
+		"fr": "fr",
+		"de_DE": "de",
+		"de-AT": "de",
+		"es_MX": "es_419",
+		"es-419": "es_419",
+		"es_ES": "es_419",
+		"pt_BR": "pt_BR",
+		"pt-PT": "pt_BR",
+		"pt": "pt_BR",
+		"en_US": "en",
+		"en_FR": "en",
+		"en": "en",
+		"ja_JP": "en",
+		"ja": "en",
+	}
+	for raw in cases.keys():
+		var got := GarageStore.locale_id_for(str(raw))
+		if got != str(cases[raw]):
+			return "%s mapped to %s, want %s" % [raw, got, cases[raw]]
+	GarageStore._install_translations()
+	var expect := {
+		"fr": {"Settings": "Réglages", "Add service": "Ajouter un entretien", "Tire rotation": "Permutation", "Lead days": "Jours d'avance", "Kilometers": "Kilomètres", "Back": "Retour"},
+		"de": {"Settings": "Einstellungen", "Add service": "Service hinzufügen", "Kilometers": "Kilometer", "Back": "Zurück"},
+		"es_419": {"Settings": "Ajustes", "Add service": "Agregar servicio", "Kilometers": "Kilómetros", "Back": "Atrás"},
+		"pt_BR": {"Settings": "Ajustes", "Add service": "Adicionar serviço", "Kilometers": "Quilômetros", "Back": "Voltar"},
+	}
+	for loc in expect.keys():
+		TranslationServer.set_locale(str(loc))
+		var rows: Dictionary = expect[loc]
+		for key in rows.keys():
+			var shown := str(TranslationServer.translate(str(key)))
+			if shown != str(rows[key]):
+				TranslationServer.set_locale("en")
+				return "%s %s is \"%s\", want \"%s\"" % [loc, key, shown, rows[key]]
+	TranslationServer.set_locale("ja")
+	if str(TranslationServer.translate("Settings")) != "Settings":
+		TranslationServer.set_locale("en")
+		return "Japanese must fall back to English"
+	TranslationServer.set_locale("en")
+	if str(TranslationServer.translate("Settings")) != "Settings":
+		return "English Settings changed"
+	return ""
 
 
 func _translations() -> String:

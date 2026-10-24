@@ -861,21 +861,28 @@ func add_days_ymd(ymd: String, delta: int) -> String:
 	return _ordinal_to_ymd(ordinal + delta)
 
 
-func _apply_locale() -> void:
-	var raw := OS.get_locale().replace("-", "_")
-	var loc := "en"
+static func locale_id_for(os_locale: String) -> String:
+	# Language only. fr_CA and fr_FR share fr; es_* uses the es_419 column; pt_* uses pt_BR.
+	# ja and every other language stay on the English column.
+	var raw := os_locale.strip_edges().replace("-", "_")
 	if raw.begins_with("de"):
-		loc = "de"
-	elif raw.begins_with("fr"):
-		loc = "fr"
-	elif raw.begins_with("es"):
-		loc = "es_419"
-	elif raw.begins_with("pt"):
-		loc = "pt_BR"
-	TranslationServer.set_locale(loc)
+		return "de"
+	if raw.begins_with("fr"):
+		return "fr"
+	if raw.begins_with("es"):
+		return "es_419"
+	if raw.begins_with("pt"):
+		return "pt_BR"
+	return "en"
+
+
+func _apply_locale() -> void:
+	TranslationServer.set_locale(locale_id_for(OS.get_locale()))
 
 
 func _install_translations() -> void:
+	# oil_due.csv.import is importer="keep" so this text is in the export.
+	# The CSV translation importer would replace it with .translation files this never opens.
 	var text := FileAccess.get_file_as_string("res://translations/oil_due.csv")
 	if text.strip_edges() == "":
 		return
