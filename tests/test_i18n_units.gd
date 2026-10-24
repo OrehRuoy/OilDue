@@ -32,53 +32,54 @@ func _device_language() -> String:
 	var imp := FileAccess.get_file_as_string("res://translations/oil_due.csv.import")
 	if not imp.contains('importer="keep"'):
 		return "oil_due.csv must stay importer keep so the device build contains the CSV"
-	var header := FileAccess.get_file_as_string("res://translations/oil_due.csv").split("\n")[0]
-	if header.split(",").has("ja"):
-		return "do not add a Japanese column"
-	var cases := {
-		"fr_FR": "fr",
-		"fr-FR": "fr",
-		"fr": "fr",
-		"de_DE": "de",
-		"de-AT": "de",
-		"es_MX": "es_419",
-		"es-419": "es_419",
-		"es_ES": "es_419",
-		"pt_BR": "pt_BR",
-		"pt-PT": "pt_BR",
-		"pt": "pt_BR",
-		"en_US": "en",
-		"en_FR": "en",
-		"en": "en",
-		"ja_JP": "en",
-		"ja": "en",
+	var header := FileAccess.get_file_as_string("res://translations/oil_due.csv").split("\n")[0].strip_edges()
+	if header != "keys,en,de,fr,es_419,pt_BR":
+		return "unexpected csv header: %s" % header
+	# Strings from the reviewer's Add service and Settings screens, in every column.
+	var phrases := {
+		"en": {"Back": "Back", "Settings": "Settings", "Add service": "Add service", "Tire rotation": "Tire rotation", "Lead days": "Lead days", "Kilometers": "Kilometers"},
+		"de": {"Back": "Zurück", "Settings": "Einstellungen", "Add service": "Service hinzufügen", "Tire rotation": "Reifen wechseln", "Lead days": "Vorlauf Tage", "Kilometers": "Kilometer"},
+		"fr": {"Back": "Retour", "Settings": "Réglages", "Add service": "Ajouter un entretien", "Tire rotation": "Permutation", "Lead days": "Jours d'avance", "Kilometers": "Kilomètres"},
+		"es_419": {"Back": "Atrás", "Settings": "Ajustes", "Add service": "Agregar servicio", "Tire rotation": "Rotación de llantas", "Lead days": "Días de anticipación", "Kilometers": "Kilómetros"},
+		"pt_BR": {"Back": "Voltar", "Settings": "Ajustes", "Add service": "Adicionar serviço", "Tire rotation": "Rodízio", "Lead days": "Dias de antecedência", "Kilometers": "Quilômetros"},
 	}
-	for raw in cases.keys():
-		var got := GarageStore.locale_id_for(str(raw))
-		if got != str(cases[raw]):
-			return "%s mapped to %s, want %s" % [raw, got, cases[raw]]
+	# Device locale, including regions, then the CSV column _apply_locale selects.
+	var devices := {
+		"en": ["en", "en_US", "en-US", "en-GB", "en_AU", "en_FR"],
+		"de": ["de", "de_DE", "de-DE", "de-AT", "de_CH"],
+		"fr": ["fr", "fr_FR", "fr-FR", "fr_CA", "fr-CA"],
+		"es_419": ["es", "es_ES", "es-ES", "es_MX", "es-MX", "es-419", "es_419"],
+		"pt_BR": ["pt", "pt_BR", "pt-BR", "pt_PT", "pt-PT"],
+	}
+	var fallback := ["ja", "ja_JP", "ja-JP", "it", "it-IT", "zh-Hans", "zh_CN"]
 	GarageStore._install_translations()
-	var expect := {
-		"fr": {"Settings": "Réglages", "Add service": "Ajouter un entretien", "Tire rotation": "Permutation", "Lead days": "Jours d'avance", "Kilometers": "Kilomètres", "Back": "Retour"},
-		"de": {"Settings": "Einstellungen", "Add service": "Service hinzufügen", "Kilometers": "Kilometer", "Back": "Zurück"},
-		"es_419": {"Settings": "Ajustes", "Add service": "Agregar servicio", "Kilometers": "Kilómetros", "Back": "Atrás"},
-		"pt_BR": {"Settings": "Ajustes", "Add service": "Adicionar serviço", "Kilometers": "Quilômetros", "Back": "Voltar"},
-	}
-	for loc in expect.keys():
-		TranslationServer.set_locale(str(loc))
-		var rows: Dictionary = expect[loc]
-		for key in rows.keys():
+	for column in devices.keys():
+		var rows: Dictionary = phrases[column]
+		for raw in devices[column]:
+			var got := GarageStore.locale_id_for(str(raw))
+			if got != str(column):
+				return "%s mapped to %s, want %s" % [raw, got, column]
+			# Same call _apply_locale makes: set the column, then read the UI strings.
+			TranslationServer.set_locale(got)
+			for key in rows.keys():
+				var shown := str(TranslationServer.translate(str(key)))
+				if shown != str(rows[key]):
+					TranslationServer.set_locale("en")
+					return "%s (%s) %s is \"%s\", want \"%s\"" % [raw, got, key, shown, rows[key]]
+			print("device %s -> %s | Settings=%s | Add service=%s | Tire rotation=%s" % [raw, got, TranslationServer.translate("Settings"), TranslationServer.translate("Add service"), TranslationServer.translate("Tire rotation")])
+	var english: Dictionary = phrases["en"]
+	for raw in fallback:
+		var got := GarageStore.locale_id_for(str(raw))
+		if got != "en":
+			return "%s should fall back to English, got %s" % [raw, got]
+		TranslationServer.set_locale(got)
+		for key in english.keys():
 			var shown := str(TranslationServer.translate(str(key)))
-			if shown != str(rows[key]):
+			if shown != str(english[key]):
 				TranslationServer.set_locale("en")
-				return "%s %s is \"%s\", want \"%s\"" % [loc, key, shown, rows[key]]
-	TranslationServer.set_locale("ja")
-	if str(TranslationServer.translate("Settings")) != "Settings":
-		TranslationServer.set_locale("en")
-		return "Japanese must fall back to English"
+				return "%s fallback %s is \"%s\", want \"%s\"" % [raw, key, shown, english[key]]
+		print("device %s -> en (fallback) | Settings=%s" % [raw, TranslationServer.translate("Settings")])
 	TranslationServer.set_locale("en")
-	if str(TranslationServer.translate("Settings")) != "Settings":
-		return "English Settings changed"
 	return ""
 
 
