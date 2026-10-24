@@ -112,6 +112,7 @@ func _make_empty_row() -> Control:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var label := Label.new()
 	label.text = tr("No jobs yet")
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", COLOR_SECONDARY)
 	label.add_theme_font_size_override("font_size", 15)
@@ -155,6 +156,8 @@ func _make_row(job: Dictionary, index: int, count: int) -> Control:
 	var date_label := Label.new()
 	var shown := DueMath.format_display_date(str(job.get("date", "")))
 	date_label.text = shown if shown != "" else str(job.get("date", ""))
+	date_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	date_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	date_label.add_theme_color_override("font_color", COLOR_PRIMARY)
 	date_label.add_theme_font_size_override("font_size", 17)
 	date_label.clip_text = false
@@ -162,6 +165,8 @@ func _make_row(job: Dictionary, index: int, count: int) -> Control:
 	var cost_bit := "—" if cost_cents == 0 else DueMath.format_cents(cost_cents)
 	var sub_label := Label.new()
 	sub_label.text = "%s · %s" % [DueMath.format_distance(int(job.get("miles", 0))), cost_bit]
+	sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sub_label.add_theme_color_override("font_color", COLOR_MUTED)
 	sub_label.add_theme_font_size_override("font_size", 13)
 	sub_label.clip_text = false

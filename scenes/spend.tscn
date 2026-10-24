@@ -61,6 +61,7 @@ script = ExtResource("2_back")
 [node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
 theme_type_variation = &"ScreenTitle"
+autowrap_mode = 3
 text = "Spent on this car"
 
 [node name="CarLabel" type="Label" parent="Margin/PageHost/Column"]

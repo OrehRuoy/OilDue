@@ -349,8 +349,8 @@ func _make_tile(vehicle: Dictionary, selected: bool) -> Control:
 	name_label.max_lines_visible = 3
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_SECONDARY)
-	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.custom_minimum_size = Vector2(TILE, 36)
+	_fit_line(name_label, TILE, 13, 11)
 
 	col.add_child(panel)
 	col.add_child(name_label)
@@ -421,11 +421,12 @@ func _make_add_tile() -> Control:
 	var name_label := Label.new()
 	name_label.text = tr("Add")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.clip_text = true
+	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_label.clip_text = false
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_MUTED)
-	name_label.add_theme_font_size_override("font_size", 15)
 	name_label.custom_minimum_size = Vector2(TILE, 0)
+	_fit_line(name_label, TILE, 15, 11)
 
 	col.add_child(panel)
 	col.add_child(name_label)
@@ -772,12 +773,16 @@ func _make_row(row: Dictionary, index: int, count: int) -> Control:
 
 	var name_label := Label.new()
 	name_label.text = tr(service_name)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.add_theme_color_override("font_color", COLOR_PRIMARY)
 	name_label.add_theme_font_size_override("font_size", 17)
 
 	var sub_label := Label.new()
 	sub_label.text = _due_subtitle(next_date, next_miles)
+	sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub_label.add_theme_color_override("font_color", COLOR_SECONDARY)
 	sub_label.add_theme_font_size_override("font_size", 13)
@@ -892,12 +897,19 @@ func _on_gear_pressed() -> void:
 
 func _fill_spend(vehicle: Dictionary) -> void:
 	var total := int(SpendRollup.rollup(vehicle).get("total_cents", 0))
-	if total > 0:
+	var show_amount := total > 0
+	if show_amount:
 		_spend_amount.text = DueMath.format_cents(total)
 		_spend_amount.visible = true
 	else:
 		_spend_amount.text = ""
 		_spend_amount.visible = false
+	# The amount sits over the right side of the button. Inset the title so it wraps beside it.
+	var style := StyleBoxEmpty.new()
+	style.content_margin_left = 16
+	style.content_margin_right = 148 if show_amount else 28
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		_spend_row.add_theme_stylebox_override(state, style)
 
 
 func _on_spend_pressed() -> void:
@@ -938,6 +950,27 @@ func _on_service_row_pressed(vehicle_id: String, service_id: String) -> void:
 	GarageStore.selected_vehicle_id = vehicle_id
 	GarageStore.selected_service_id = service_id
 	_go("res://scenes/service_list.tscn")
+
+
+func _fit_line(label: Label, max_width: float, start_size: int, floor_size: int) -> void:
+	label.add_theme_font_size_override("font_size", start_size)
+	var font := label.get_theme_font("font")
+	if font == null:
+		return
+	var size := start_size
+	while size > floor_size and _widest_line(font, label.text, size) > max_width:
+		size -= 1
+	label.add_theme_font_size_override("font_size", size)
+	var still := _widest_line(font, label.text, size) > max_width
+	label.clip_text = still
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS if still else TextServer.OVERRUN_NO_TRIMMING
+
+
+func _widest_line(font: Font, text: String, size: int) -> float:
+	var widest := 0.0
+	for line in text.split("\n"):
+		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x)
+	return widest
 
 
 func _go(path: String) -> void:

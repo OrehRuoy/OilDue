@@ -220,6 +220,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
 theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
 text = "2018 Honda Civic"
 
 [node name="StatsRow" type="HBoxContainer" parent="SafeArea/Column/ListingCard/CardCol"]
@@ -228,13 +229,14 @@ theme_override_constants/separation = 24
 
 [node name="MilesCol" type="VBoxContainer" parent="SafeArea/Column/ListingCard/CardCol/StatsRow"]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 1
 theme_override_constants/separation = 2
 
 [node name="MilesCap" type="Label" parent="SafeArea/Column/ListingCard/CardCol/StatsRow/MilesCol"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
 theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
 text = "MILES"
 
 [node name="MilesVal" type="Button" parent="SafeArea/Column/ListingCard/CardCol/StatsRow/MilesCol"]
@@ -262,13 +264,15 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
 theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
 text = "OIL"
 
 [node name="DueVal" type="Label" parent="SafeArea/Column/ListingCard/CardCol/StatsRow/DueCol"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.956863, 0.937255, 0.901961, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
 text = "—"
 
 [node name="LogButton" type="Button" parent="SafeArea/Column/ListingCard/CardCol"]
@@ -276,6 +280,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_type_variation = &"CreamButton"
+autowrap_mode = 3
 text = "Log oil"
 
 [node name="AddService" type="Button" parent="SafeArea/Column/ListingCard/CardCol"]
@@ -292,6 +297,7 @@ theme_override_styles/hover = SubResource("StyleBoxEmpty_ghost")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_ghost")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_ghost")
 flat = true
+autowrap_mode = 3
 text = "Add another service"
 
 [node name="SpendRow" type="Button" parent="SafeArea/Column"]
@@ -300,6 +306,7 @@ custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_type_variation = &"SettingsRow"
 alignment = 0
+autowrap_mode = 3
 text = "Spent on this car"
 icon = ExtResource("6_chevron")
 icon_alignment = 2

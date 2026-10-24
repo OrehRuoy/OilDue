@@ -50,6 +50,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_type_variation = &"ScreenTitle"
 autowrap_mode = 3
+autowrap_mode = 3
 text = "When was your last oil change?"
 
 [node name="DateButton" type="Button" parent="Margin/PageHost/Column"]

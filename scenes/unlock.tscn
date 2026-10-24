@@ -60,6 +60,7 @@ expand_icon = true
 [node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
 theme_type_variation = &"ScreenTitle"
+autowrap_mode = 3
 text = "Unlock Oil Due"
 
 [node name="Glyph" type="TextureRect" parent="Margin/PageHost/Column"]

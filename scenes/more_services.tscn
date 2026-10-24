@@ -50,6 +50,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_type_variation = &"ScreenTitle"
 autowrap_mode = 3
+autowrap_mode = 3
 text = "Oil Due tracks more than oil"
 
 [node name="Scroll" type="ScrollContainer" parent="Margin/PageHost/Column"]

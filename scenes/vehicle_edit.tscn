@@ -177,6 +177,7 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.94902, 0.94902, 0.968627, 1)
 theme_override_font_sizes/font_size = 24
+autowrap_mode = 3
 text = "Daily"
 
 [node name="PlaceSpec" type="Label" parent="Margin/PageHost/PageScroll/Column/PlaceholderRow/PlaceNames"]
@@ -185,6 +186,7 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.603922, 0.576471, 0.533333, 1)
 theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
 text = "2018 Honda Civic"
 
 [node name="FormGroup" type="PanelContainer" parent="Margin/PageHost/PageScroll/Column"]

@@ -103,6 +103,7 @@ func _make_type_row(index: int, tmpl: Dictionary) -> Button:
 
 	var label := Label.new()
 	label.text = tr(str(tmpl.get("name", type_id)))
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE

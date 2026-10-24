@@ -186,6 +186,7 @@ func _fill_archived() -> void:
 		btn.custom_minimum_size = Vector2(0, 52)
 		btn.theme_type_variation = &"SettingsRow"
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.text = _vehicle_display_name(vehicle)
 		btn.icon = CHEVRON
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT

@@ -86,6 +86,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"ScreenTitle"
+autowrap_mode = 3
 text = "History"
 
 [node name="HistoryGroup" type="PanelContainer" parent="Margin/PageHost/Column/PageScroll/Inner"]

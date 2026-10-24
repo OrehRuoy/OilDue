@@ -180,11 +180,13 @@ func _show_photo(filename: String) -> void:
 		labels.offset_bottom = -12.0
 		var nick := Label.new()
 		nick.text = _vehicle_display_name(vehicle)
+		nick.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		nick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		nick.add_theme_color_override("font_color", Color("#F4EFE6"))
 		nick.add_theme_font_size_override("font_size", 24)
 		var spec := Label.new()
 		spec.text = _vehicle_spec_line(vehicle)
+		spec.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		spec.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spec.add_theme_color_override("font_color", Color("#C8C2B8"))
 		spec.add_theme_font_size_override("font_size", 14)

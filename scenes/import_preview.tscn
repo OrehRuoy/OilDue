@@ -48,6 +48,7 @@ theme_override_constants/separation = 20
 [node name="Title" type="Label" parent="Margin/PageHost/Column"]
 layout_mode = 2
 theme_type_variation = &"ScreenTitle"
+autowrap_mode = 3
 text = "Import preview"
 
 [node name="FormGroup" type="PanelContainer" parent="Margin/PageHost/Column"]
