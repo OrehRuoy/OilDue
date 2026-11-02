@@ -22,3 +22,5 @@ mono_crash.*.json
 
 # App Store screenshots. Not part of the app.
 OilDue-ASC-Screenshots/
+screenshots/
+screenshots-ipad/
