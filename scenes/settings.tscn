@@ -186,6 +186,21 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
+[node name="GroupMore" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="MoreAppsButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupMore"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "More by OrehRuoy"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
 [node name="DataCaption" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
 theme_type_variation = &"Caption"
@@ -418,7 +433,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"Caption"
-text = "Version 1.0.3"
+text = "Version 1.0.4"
 
 [node name="PrivacyLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2

@@ -13,6 +13,9 @@ const HISTORY_PDF_PATH := "user://oil-due-history.pdf"
 const BACKUP_ZIP_PATH := "user://oil-due-backup.zip"
 const FILES_HINT := "Find it in Files, On My iPhone, Oil Due."
 const KEEP_HINT := " Move it to iCloud Drive to keep it if you delete the app."
+## SensorFit opens this Play developer page from Settings. Not the portfolio site.
+const DEVELOPER_PLAY_STORE_URL := "https://play.google.com/store/apps/developer?id=OrehRuoy"
+const DEVELOPER_APP_STORE_URL := "https://apps.apple.com/developer/id6789963001"
 
 enum DialogMode { SAVE_CSV, SAVE_ZIP, OPEN_ZIP, SAVE_PDF }
 enum PickKind { CSV, ZIP }
@@ -46,6 +49,7 @@ func _ready() -> void:
 	_ensure_distance_switch()
 	_ensure_currency_picker()
 	%HelpButton.pressed.connect(_on_help_pressed)
+	%MoreAppsButton.pressed.connect(_on_more_apps_pressed)
 	%RestorePurchasesButton.pressed.connect(_on_restore_purchases_pressed)
 	%ImportCsvButton.pressed.connect(_on_import_csv_pressed)
 	%ImportSampleButton.pressed.connect(_on_import_sample_pressed)
@@ -148,6 +152,19 @@ func _on_lead_selected(index: int) -> void:
 
 func _on_help_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/help.tscn")
+
+
+func _developer_store_url() -> String:
+	if OS.has_feature("ios"):
+		return DEVELOPER_APP_STORE_URL
+	return DEVELOPER_PLAY_STORE_URL
+
+
+func _on_more_apps_pressed() -> void:
+	var url := _developer_store_url()
+	if url.is_empty():
+		return
+	OS.shell_open(url)
 
 
 func _on_restore_purchases_pressed() -> void:
