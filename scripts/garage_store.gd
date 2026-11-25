@@ -289,6 +289,7 @@ func log_service(date: String, miles: int, cost_cents: int, notes: String) -> bo
 			row["receipt"] = dest_name
 			save()
 	NotifyService.reschedule()
+	ReviewPrompt.on_service_logged()
 	return true
 
 

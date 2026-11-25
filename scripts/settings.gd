@@ -50,6 +50,10 @@ func _ready() -> void:
 	_ensure_currency_picker()
 	%HelpButton.pressed.connect(_on_help_pressed)
 	%MoreAppsButton.pressed.connect(_on_more_apps_pressed)
+	%RateButton.pressed.connect(_on_rate_pressed)
+	%FeedbackButton.pressed.connect(_on_feedback_pressed)
+	%DebugEnjoyButton.pressed.connect(_on_debug_enjoy_pressed)
+	%DebugFeedbackButton.pressed.connect(_on_debug_feedback_pressed)
 	%RestorePurchasesButton.pressed.connect(_on_restore_purchases_pressed)
 	%ImportCsvButton.pressed.connect(_on_import_csv_pressed)
 	%ImportSampleButton.pressed.connect(_on_import_sample_pressed)
@@ -165,6 +169,26 @@ func _on_more_apps_pressed() -> void:
 	if url.is_empty():
 		return
 	OS.shell_open(url)
+
+
+func _on_rate_pressed() -> void:
+	OS.shell_open(AppInfo.WRITE_REVIEW_URL)
+
+
+func _on_feedback_pressed() -> void:
+	ReviewPrompt.show_feedback()
+
+
+func _on_debug_enjoy_pressed() -> void:
+	if not OS.is_debug_build():
+		return
+	ReviewPrompt.debug_show_card()
+
+
+func _on_debug_feedback_pressed() -> void:
+	if not OS.is_debug_build():
+		return
+	ReviewPrompt.debug_show_feedback()
 
 
 func _on_restore_purchases_pressed() -> void:

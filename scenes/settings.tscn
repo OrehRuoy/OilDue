@@ -201,6 +201,38 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
+[node name="GroupRate" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="RateButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupRate"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Rate Oil Due"
+autowrap_mode = 3
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="GroupFeedback" type="PanelContainer" parent="Margin/PageHost/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = &"GroupCard"
+
+[node name="FeedbackButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupFeedback"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+text = "Send Feedback"
+autowrap_mode = 3
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
 [node name="DataCaption" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
 theme_type_variation = &"Caption"
@@ -423,6 +455,42 @@ icon = ExtResource("4_chevron")
 icon_alignment = 2
 expand_icon = true
 
+[node name="HairDev5" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="DebugEnjoyButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+auto_translate_mode = 2
+text = "Show Enjoying card"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
+[node name="HairDev6" type="ColorRect" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.219608, 0.196078, 1)
+
+[node name="DebugFeedbackButton" type="Button" parent="Margin/PageHost/Scroll/Column/GroupDeveloper/DevCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"SettingsRow"
+alignment = 0
+auto_translate_mode = 2
+text = "Show feedback form"
+icon = ExtResource("4_chevron")
+icon_alignment = 2
+expand_icon = true
+
 [node name="StatusLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -433,7 +501,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"Caption"
-text = "Version 1.0.4"
+text = "Version 1.0.5"
 
 [node name="PrivacyLabel" type="Label" parent="Margin/PageHost/Scroll/Column"]
 layout_mode = 2
